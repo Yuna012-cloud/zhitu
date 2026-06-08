@@ -1,0 +1,4204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>智途 - AI求职智能匹配助手</title>
+<style>
+:root {
+  --bg: #F0F9FF;
+  --white: #FFFFFF;
+  --primary: #0C4A6E;
+  --primary-light: #0369A1;
+  --accent: #0EA5E9;
+  --accent-light: #BAE6FD;
+  --green: #16A34A;
+  --green-bg: rgba(22,163,74,0.1);
+  --red: #DC2626;
+  --gray: #64748B;
+  --gray-light: #94A3B8;
+  --border: #E2E8F0;
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.05);
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg: 0 4px 20px rgba(0,0,0,0.15);
+  --gradient: linear-gradient(135deg, #0284C7, #0EA5E9);
+  --radius-sm: 6px;
+  --radius: 12px;
+  --radius-md: 14px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+  --font: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'Inter', monospace;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; font-family:var(--font); background:#0A1A2A; }
+
+.app-container {
+  width:100%; height:100%;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg, #0A1A2A, #0F2B3D);
+}
+
+.phone-frame {
+  width:375px; height:812px; max-height:100dvh;
+  position:relative;
+  overflow:hidden;
+  background:var(--bg);
+  border-radius:32px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 2px rgba(255,255,255,0.1);
+}
+
+.screen {
+  position:absolute;
+  top:0;left:0;right:0;bottom:0;
+  display:flex; flex-direction:column;
+  opacity:0; transform:translateX(40px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  pointer-events:none;
+  overflow:hidden;
+}
+.screen.active { opacity:1; transform:translateX(0); pointer-events:auto; z-index:2; }
+.screen.exit-left { opacity:0; transform:translateX(-40px); }
+
+.status-bar {
+  min-height:44px;
+  display:flex; align-items:center; justify-content:center;
+  padding:0 20px; flex-shrink:0;
+}
+.status-bar .time { font-size:15px; font-family:var(--font-mono); font-weight:600; color:var(--primary); }
+
+.header {
+  min-height:48px;
+  display:flex; align-items:center;
+  padding:0 20px; gap:12px;
+  background:var(--white);
+  box-shadow:var(--shadow-sm);
+  flex-shrink:0;
+}
+.header-title { font-size:17px; font-weight:700; color:var(--primary); flex:1; }
+.back-btn {
+  width:24px; height:24px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; border:none; background:none;
+  color:var(--primary);
+}
+
+.scroll-area {
+  flex:1; overflow-y:auto; overflow-x:hidden;
+  padding:20px;
+  display:flex; flex-direction:column; gap:16px;
+  -webkit-overflow-scrolling:touch;
+}
+
+/* AI Chat */
+.ai-row { display:flex; gap:10px; align-items:flex-start; }
+.ai-avatar {
+  width:32px; height:32px; border-radius:16px;
+  background:var(--gradient);
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+  font-size:11px; font-weight:700; color:var(--white);
+}
+.ai-bubble {
+  background:var(--white);
+  padding:14px; border-radius:var(--radius-md);
+  box-shadow:var(--shadow);
+  max-width:270px;
+}
+.ai-bubble p { font-size:14px; color:var(--primary); line-height:1.6; }
+
+/* Chips */
+.chip-row { display:flex; flex-wrap:wrap; gap:8px; padding:4px 0 4px 42px; }
+.chip {
+  padding:8px 14px; border-radius:18px;
+  font-size:13px; font-weight:500;
+  background:var(--accent-light);
+  color:var(--primary);
+  border:1px solid rgba(14,165,233,0.3);
+  cursor:pointer; transition:all 0.2s;
+  user-select:none;
+}
+.chip.selected { background:var(--gradient); color:var(--white); border-color:transparent; }
+.chip:active { transform:scale(0.95); }
+
+/* Cards */
+.card {
+  background:var(--white);
+  padding:16px; border-radius:var(--radius-md);
+  box-shadow:var(--shadow-md);
+}
+.card-stroke { border:1.5px solid var(--accent-light); }
+.card-stroke.selected { border:2px solid var(--green); box-shadow: 0 0 0 3px rgba(22,163,74,0.12); }
+@keyframes fadeInUp { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+
+/* Scenario Cards */
+.scenario-card {
+  background:var(--white);
+  padding:16px; border-radius:var(--radius-md);
+  border:1.5px solid var(--accent-light);
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.scenario-card:active { transform:scale(0.98); box-shadow:0 0 0 3px rgba(14,165,233,0.2); }
+.scenario-card.selected { border-color:var(--accent); box-shadow:0 0 0 3px rgba(14,165,233,0.2); }
+.scenario-header { display:flex; gap:10px; align-items:center; margin-bottom:10px; }
+.scenario-icon {
+  width:40px; height:40px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; flex-shrink:0;
+}
+.scenario-title { font-size:16px; font-weight:700; color:var(--primary); }
+.scenario-desc { font-size:13px; color:var(--gray); line-height:1.6; margin-bottom:10px; }
+.scenario-tag {
+  display:inline-block; padding:4px 10px; border-radius:6px;
+  font-size:11px;
+}
+
+/* Job Cards */
+.job-card {
+  background:var(--white);
+  padding:16px; border-radius:var(--radius-md);
+  box-shadow:var(--shadow-md);
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.job-card:active { transform:scale(0.98); }
+.job-top { display:flex; gap:12px; align-items:center; margin-bottom:12px; }
+.job-logo {
+  width:44px; height:44px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:17px; font-weight:700; flex-shrink:0;
+}
+.job-info { flex:1; }
+.job-title { font-size:15px; font-weight:700; color:var(--primary); }
+.job-company { font-size:13px; font-weight:500; color:var(--gray); }
+.job-meta { display:flex; gap:14px; margin-bottom:10px; }
+.job-salary { font-size:14px; font-weight:700; color:var(--red); }
+.job-location { font-size:13px; color:var(--gray); }
+.job-req-label { font-size:12px; font-weight:700; color:var(--primary-light); margin-bottom:4px; }
+.job-req { font-size:12px; color:var(--gray); line-height:1.5; margin-bottom:8px; }
+.source-badge {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:4px 8px; border-radius:4px;
+  background:var(--green-bg);
+  font-size:11px; color:var(--green);
+}
+.source-badge::before { content:'✓'; font-weight:700; }
+
+/* Buttons */
+.btn {
+  width:100%; height:50px; border-radius:25px;
+  border:none; font-size:15px; font-weight:700;
+  color:var(--white); cursor:pointer;
+  background:var(--gradient);
+  transition:all 0.2s;
+  display:flex; align-items:center; justify-content:center;
+  gap:8px;
+}
+.btn:active { transform:scale(0.97); opacity:0.9; }
+.btn-secondary {
+  background:var(--border);
+  color:var(--primary-light);
+}
+.btn-outline {
+  background:transparent;
+  border:1.5px solid var(--accent-light);
+  color:var(--primary-light);
+}
+
+/* Welcome Screen */
+.welcome-content {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:20px; gap:20px;
+  background:var(--bg);
+}
+.logo-circle {
+  width:80px; height:80px; border-radius:40px;
+  background:var(--gradient);
+  display:flex; align-items:center; justify-content:center;
+  font-size:32px; font-weight:700; color:var(--white);
+}
+.app-name { font-size:28px; font-weight:700; color:var(--primary); }
+.tagline { font-size:15px; color:var(--gray); }
+.feature-item { display:flex; gap:12px; align-items:center; }
+.feature-dot { width:8px; height:8px; border-radius:4px; flex-shrink:0; }
+.feature-dot.green { background:var(--green); }
+.feature-dot.blue { background:var(--accent); }
+.feature-text { font-size:14px; color:var(--primary); }
+.welcome-cta { width:calc(100% - 40px); margin-top:20px; }
+
+/* Progress bar */
+.progress-bar {
+  height:4px; background:var(--border);
+  border-radius:2px; margin:8px 20px;
+  flex-shrink:0;
+}
+.progress-fill {
+  height:100%; background:var(--gradient);
+  border-radius:2px; transition:width 0.5s ease;
+}
+
+/* Upload area */
+.upload-zone {
+  border:2px dashed var(--accent-light);
+  border-radius:var(--radius-md);
+  padding:30px 20px;
+  display:flex; flex-direction:column;
+  align-items:center; gap:12px;
+  cursor:pointer;
+  transition:all 0.3s;
+}
+.upload-zone:hover { border-color:var(--accent); background:rgba(14,165,233,0.03); }
+.upload-zone.active { border-color:var(--accent); background:rgba(14,165,233,0.05); }
+.upload-icon { font-size:40px; }
+.upload-text { font-size:14px; color:var(--primary); font-weight:600; }
+.upload-hint { font-size:12px; color:var(--gray); }
+
+/* Match score */
+.match-score {
+  display:flex; align-items:center; gap:12px;
+}
+.score-ring {
+  width:56px; height:56px; border-radius:28px;
+  background:var(--green-bg);
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; font-family:var(--font-mono);
+  font-weight:700; color:var(--green);
+}
+
+/* Tips list */
+.tip-item { display:flex; gap:10px; align-items:flex-start; }
+.tip-num {
+  width:24px; height:24px; border-radius:12px;
+  background:rgba(3,105,161,0.1);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-family:var(--font-mono);
+  font-weight:700; color:var(--primary-light);
+  flex-shrink:0;
+}
+.tip-text { font-size:14px; color:var(--primary); line-height:1.6; }
+
+/* Checklist */
+.check-item {
+  display:flex; gap:10px; align-items:center;
+}
+.check-box {
+  width:20px; height:20px; border-radius:4px;
+  background:var(--green-bg);
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-family:var(--font-mono);
+  font-weight:700; color:var(--green);
+  flex-shrink:0;
+}
+
+/* Stats row */
+.stats-row { display:flex; gap:12px; }
+.stat-item {
+  flex:1; padding:14px;
+  background:var(--white);
+  border-radius:var(--radius);
+  display:flex; flex-direction:column;
+  align-items:center; gap:4px;
+}
+.stat-num { font-size:22px; font-family:var(--font-mono); font-weight:700; }
+.stat-num.blue { color:var(--primary-light); }
+.stat-num.green { color:var(--green); }
+.stat-num.sky { color:var(--accent); }
+.stat-label { font-size:11px; color:var(--gray); }
+
+/* Profiency selector */
+.prof-row {
+  display:flex; gap:6px; flex-wrap:wrap;
+  padding-left:42px;
+}
+.prof-chip {
+  padding:6px 12px; border-radius:14px;
+  font-size:12px; font-weight:500;
+  background:var(--white);
+  color:var(--gray-light);
+  border:1px solid var(--border);
+  cursor:pointer;
+}
+.prof-chip.selected { background:var(--accent-light); color:var(--primary); border-color:var(--accent); }
+
+/* Typing indicator */
+.typing { display:flex; gap:6px; padding:8px 0; }
+.typing span {
+  width:8px; height:8px; border-radius:4px;
+  background:var(--gray-light);
+  animation:typing 1.4s infinite;
+}
+.typing span:nth-child(2) { animation-delay:0.2s; }
+.typing span:nth-child(3) { animation-delay:0.4s; }
+@keyframes typing { 0%,60%,100% { opacity:0.3; transform:translateY(0); } 30% { opacity:1; transform:translateY(-4px); } }
+
+/* Navigation dots */
+.nav-dots {
+  display:flex; gap:8px; padding:10px 20px;
+  justify-content:center;
+  flex-shrink:0;
+}
+.nav-dot {
+  width:6px; height:6px; border-radius:3px;
+  background:var(--gray-light);
+  opacity:0.5; transition:all 0.3s;
+}
+.nav-dot.active { opacity:1; background:var(--accent); width:20px; }
+
+/* Enhanced job detail */
+.detail-section { margin-bottom:12px; }
+.detail-label { font-size:12px; font-weight:700; color:var(--primary-light); margin-bottom:6px; }
+.detail-text { font-size:13px; color:var(--gray); line-height:1.7; }
+.detail-tags { display:flex; flex-wrap:wrap; gap:6px; }
+.detail-tag {
+  padding:4px 10px; border-radius:12px;
+  font-size:11px; font-weight:500;
+  background:var(--accent-light);
+  color:var(--primary);
+}
+
+/* Search input style */
+.search-box {
+  display:flex; align-items:center; gap:10px;
+  padding:12px 16px; flex-shrink:0;
+  background:var(--white);
+  border-radius:25px;
+  border:1.5px solid var(--accent-light);
+}
+.search-box input {
+  flex:1; border:none; outline:none;
+  font-size:14px; font-family:var(--font);
+  color:var(--primary); background:transparent;
+}
+.search-box input::placeholder { color:var(--gray-light); }
+.search-btn {
+  width:36px; height:36px; border-radius:18px;
+  background:var(--primary);
+  border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--white);
+}
+
+/* Success page */
+.success-center {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:20px; gap:20px;
+}
+.success-icon {
+  width:80px; height:80px; border-radius:40px;
+  background:var(--gradient);
+  display:flex; align-items:center; justify-content:center;
+  font-size:36px;
+}
+
+/* Work mode sim content */
+.work-mode-scene {
+  background:var(--white);
+  border-radius:var(--radius-md);
+  padding:20px;
+  line-height:1.8;
+}
+.work-mode-scene h3 { font-size:16px; color:var(--primary); margin-bottom:8px; }
+.work-mode-scene .time-block { 
+  display:flex; gap:10px; margin:6px 0; 
+}
+.work-mode-scene .time-stamp {
+  font-size:12px; font-weight:700; color:var(--accent);
+  font-family:var(--font-mono); width:48px; flex-shrink:0;
+}
+.work-mode-scene .time-desc { font-size:13px; color:var(--primary); }
+
+/* Sections */
+.section-title {
+  font-size:13px; font-weight:700; color:var(--primary-light);
+  margin-left:42px; margin-top:4px;
+}
+
+/* Toast */
+.toast {
+  position:fixed; top:20px; left:50%; transform:translateX(-50%);
+  background:var(--primary); color:var(--white);
+  padding:12px 24px; border-radius:var(--radius-full);
+  font-size:14px; z-index:100;
+  opacity:0; transition:opacity 0.3s;
+}
+.toast.show { opacity:1; }
+
+/* Scrollbar */
+.scroll-area::-webkit-scrollbar { width:3px; }
+.scroll-area::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+/* Resume advice section */
+.advice-header-banner {
+  background: linear-gradient(135deg, rgba(2,132,199,0.08), rgba(14,165,233,0.12));
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1.5px solid var(--accent-light);
+}
+.advice-section-card {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 10px;
+  border-left: 3px solid var(--accent);
+  box-shadow: var(--shadow);
+}
+.advice-section-card h4 {
+  font-size: 14px;
+  color: var(--primary);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.advice-section-card ul {
+  padding-left: 16px;
+  font-size: 13px;
+  color: var(--gray);
+  line-height: 1.9;
+}
+.advice-section-card ul li { margin-bottom: 2px; }
+.advice-section-card ul li strong { color: var(--primary-light); }
+.choice-btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.choice-card-btn {
+  background: var(--white);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-align: left;
+}
+.choice-card-btn:hover, .choice-card-btn:active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
+  transform: translateY(-1px);
+}
+.choice-card-btn .choice-icon {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.choice-card-btn .choice-info { flex: 1; }
+.choice-card-btn .choice-title {
+  font-size: 15px; font-weight: 700; color: var(--primary); margin-bottom: 4px;
+}
+.choice-card-btn .choice-desc {
+  font-size: 12px; color: var(--gray); line-height: 1.5;
+}
+.choice-card-btn .choice-arrow {
+  font-size: 18px; color: var(--gray-light); flex-shrink: 0;
+}
+.skip-link {
+  display: block;
+  text-align: center;
+  padding: 12px;
+  font-size: 13px;
+  color: var(--gray-light);
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+.skip-link:hover { color: var(--accent); }
+
+/* Responsive */
+@media (max-width:400px), (max-height:700px) {
+  .phone-frame { width:100%; height:100dvh; border-radius:0; max-height:100dvh; }
+  .app-container { background:none; }
+}
+@media (min-width:768px) {
+  .phone-frame { transform:scale(0.85); }
+}
+@media (min-width:1024px) {
+  .phone-frame { transform:scale(0.75); }
+}
+</style>
+</head>
+<body>
+<div class="app-container">
+<div class="phone-frame" id="phoneFrame">
+
+<!-- ==================== SCREEN 1: Welcome ==================== -->
+<div class="screen active" data-screen="1">
+  <div class="welcome-content">
+    <div class="logo-circle">智</div>
+    <div class="app-name">智途</div>
+    <div class="tagline">AI求职智能匹配助手</div>
+    <div class="feature-item"><div class="feature-dot green"></div><span class="feature-text">AI深度对话，精准定位职业兴趣</span></div>
+    <div class="feature-item"><div class="feature-dot blue"></div><span class="feature-text">实时岗位匹配，官方信息源捕捉</span></div>
+    <div class="feature-item"><div class="feature-dot blue"></div><span class="feature-text">智能简历优化，针对性提升命中率</span></div>
+    <button class="btn welcome-cta" onclick="goScreen(2)">开始求职匹配</button>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 2: Basic Info ==================== -->
+<div class="screen" data-screen="2">
+  <div class="status-bar"><span class="time">9:41</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(1)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">个人背景</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="prog2" style="width:10%"></div></div>
+  <div class="scroll-area" id="chat2">
+    <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>你好！我是你的专属求职助手。在开始匹配之前，我想先全面了解你的情况。<br><br><b>首先，你的最高学历和专业方向是什么？</b></p></div></div>
+    <div class="chip-row">
+      <span class="chip" onclick="selectChip(this,'学历：本科')">本科</span>
+      <span class="chip" onclick="selectChip(this,'学历：硕士')">硕士</span>
+      <span class="chip" onclick="selectChip(this,'学历：博士')">博士</span>
+      <span class="chip" onclick="selectChip(this,'学历：专科')">专科</span>
+    </div>
+    <div class="chip-row">
+      <span class="chip" onclick="selectChip(this,'专业：计算机/IT')">计算机/IT</span>
+      <span class="chip" onclick="selectChip(this,'专业：金融/经管')">金融/经管</span>
+      <span class="chip" onclick="selectChip(this,'专业：人文社科')">人文社科</span>
+      <span class="chip" onclick="selectChip(this,'专业：理工科')">理工科</span>
+      <span class="chip" onclick="selectChip(this,'专业：医学')">医学</span>
+      <span class="chip" onclick="selectChip(this,'专业：艺术设计')">艺术设计</span>
+    </div>
+  </div>
+  <div class="search-box" style="margin:0 20px 12px;">
+    <input type="text" id="input2" placeholder="或直接输入你的回答..." onkeydown="if(event.key==='Enter')nextScreen(2)">
+    <button class="search-btn" onclick="nextScreen(2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 3: Skills ==================== -->
+<div class="screen" data-screen="3">
+  <div class="status-bar"><span class="time">9:42</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(2)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">技能与专长</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="prog3" style="width:25%"></div></div>
+  <div class="scroll-area">
+    <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>接下来我想了解你的<b>专业技能</b>和<b>软实力</b>。请勾选你掌握的技能，可以多选。</p></div></div>
+    <div class="section-title">🛠 技术技能 · 编程与数据</div>
+    <div class="chip-row" id="techChips">
+      <span class="chip" onclick="selectChip(this)">Python</span>
+      <span class="chip" onclick="selectChip(this)">SQL</span>
+      <span class="chip" onclick="selectChip(this)">Java</span>
+      <span class="chip" onclick="selectChip(this)">C/C++</span>
+      <span class="chip" onclick="selectChip(this)">JavaScript</span>
+      <span class="chip" onclick="selectChip(this)">TypeScript</span>
+      <span class="chip" onclick="selectChip(this)">Go</span>
+      <span class="chip" onclick="selectChip(this)">Rust</span>
+      <span class="chip" onclick="selectChip(this)">R</span>
+      <span class="chip" onclick="selectChip(this)">MATLAB</span>
+    </div>
+    <div class="section-title" style="font-size:13px;color:var(--gray-light);margin-top:4px">🛠 工具与平台</div>
+    <div class="chip-row" id="toolChips">
+      <span class="chip" onclick="selectChip(this)">Excel</span>
+      <span class="chip" onclick="selectChip(this)">Tableau</span>
+      <span class="chip" onclick="selectChip(this)">Power BI</span>
+      <span class="chip" onclick="selectChip(this)">SPSS</span>
+      <span class="chip" onclick="selectChip(this)">Docker</span>
+      <span class="chip" onclick="selectChip(this)">Kubernetes</span>
+      <span class="chip" onclick="selectChip(this)">Git</span>
+      <span class="chip" onclick="selectChip(this)">Linux</span>
+      <span class="chip" onclick="selectChip(this)">Figma</span>
+      <span class="chip" onclick="selectChip(this)">AI/ML框架</span>
+      <span class="chip" onclick="selectChip(this)">财务建模</span>
+      <span class="chip" onclick="selectChip(this)">自媒体运营</span>
+    </div>
+    <div class="section-title">💬 软技能</div>
+    <div class="chip-row" id="softChips">
+      <span class="chip" onclick="selectChip(this)">沟通表达</span>
+      <span class="chip" onclick="selectChip(this)">团队协作</span>
+      <span class="chip" onclick="selectChip(this)">领导力</span>
+      <span class="chip" onclick="selectChip(this)">问题解决</span>
+      <span class="chip" onclick="selectChip(this)">项目管理</span>
+      <span class="chip" onclick="selectChip(this)">批判思维</span>
+      <span class="chip" onclick="selectChip(this)">创造力</span>
+      <span class="chip" onclick="selectChip(this)">抗压能力</span>
+      <span class="chip" onclick="selectChip(this)">时间管理</span>
+      <span class="chip" onclick="selectChip(this)">跨文化沟通</span>
+      <span class="chip" onclick="selectChip(this)">演讲展示</span>
+      <span class="chip" onclick="selectChip(this)">快速学习</span>
+      <span class="chip" onclick="selectChip(this)">谈判协商</span>
+    </div>
+    <div class="ai-row" style="margin-top:8px"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>如果有上面没列出的技能，请在下方补充（选填，不影响流程）：</p></div></div>
+    <div class="search-box" style="margin:0 0 8px 0;">
+      <input type="text" id="customSkillInput" placeholder="例如：Blender、数理统计、行业研究..." onkeydown="if(event.key==='Enter')addCustomSkill()">
+      <button class="search-btn" onclick="addCustomSkill()" style="font-size:12px;padding:8px 12px">+</button>
+    </div>
+    <div class="chip-row" id="customSkillsRow"></div>
+    <div class="ai-row" id="selectedSkillsRow" style="display:none">
+      <div class="ai-avatar">AI</div>
+      <div class="ai-bubble"><p id="skillsFeedback">已记录你的技能选择。</p></div>
+    </div>
+  </div>
+  <div style="padding:0 20px 12px;">
+    <button class="btn" onclick="nextScreen(3)">继续下一步</button>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 4: Experience ==================== -->
+<div class="screen" data-screen="4">
+  <div class="status-bar"><span class="time">9:43</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(3)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">经验与经历</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="prog4" style="width:40%"></div></div>
+  <div class="scroll-area">
+    <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>很棒！现在我想了解你的<b>实习/项目经历</b>。你的经验类型是？</p></div></div>
+    <div class="chip-row">
+      <span class="chip" onclick="selectChip(this,'经历：有实习经验')">有实习经验</span>
+      <span class="chip" onclick="selectChip(this,'经历：有项目经验')">有项目经验</span>
+      <span class="chip" onclick="selectChip(this,'经历：科研经历')">科研经历</span>
+      <span class="chip" onclick="selectChip(this,'经历：竞赛获奖')">竞赛获奖</span>
+      <span class="chip" onclick="selectChip(this,'经历：暂无经验')">暂无经验</span>
+    </div>
+    <div id="expFollow" style="display:none">
+      <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>请简要描述你的经历时长和内容：</p></div></div>
+      <div class="chip-row">
+        <span class="chip" onclick="selectChip(this,'时长：<3个月')">&lt; 3个月</span>
+        <span class="chip" onclick="selectChip(this,'时长：3-6个月')">3-6个月</span>
+        <span class="chip" onclick="selectChip(this,'时长：6-12个月')">6-12个月</span>
+        <span class="chip" onclick="selectChip(this,'时长：>1年')">&gt; 1年</span>
+      </div>
+    </div>
+  </div>
+  <div style="padding:0 20px 12px;">
+    <button class="btn" onclick="nextScreen(4)">继续下一步</button>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 5: Career Interest Quiz ==================== -->
+<div class="screen" data-screen="5">
+  <div class="status-bar"><span class="time">9:44</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(4)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">职业兴趣</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="prog5" style="width:55%"></div></div>
+  <div class="scroll-area">
+    <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>了解完你的背景后，我想知道你的<b>职业偏好</b>。以下哪种方向最接近你的期望？（可多选）</p></div></div>
+    <div class="chip-row">
+      <span class="chip" onclick="selectChip(this,'偏好：技术研发')">技术研发</span>
+      <span class="chip" onclick="selectChip(this,'偏好：数据分析')">数据分析</span>
+      <span class="chip" onclick="selectChip(this,'偏好：产品设计')">产品设计</span>
+      <span class="chip" onclick="selectChip(this,'偏好：金融投资')">金融投资</span>
+      <span class="chip" onclick="selectChip(this,'偏好：市场运营')">市场运营</span>
+      <span class="chip" onclick="selectChip(this,'偏好：咨询顾问')">咨询顾问</span>
+      <span class="chip" onclick="selectChip(this,'偏好：人工智能')">人工智能</span>
+      <span class="chip" onclick="selectChip(this,'偏好：教育培训')">教育培训</span>
+      <span class="chip" onclick="selectChip(this,'偏好：医疗健康')">医疗健康</span>
+      <span class="chip" onclick="selectChip(this,'偏好：文化传媒')">文化传媒</span>
+      <span class="chip" onclick="selectChip(this,'偏好：供应链物流')">供应链/物流</span>
+      <span class="chip" onclick="selectChip(this,'偏好：法律服务')">法律合规</span>
+      <span class="chip" onclick="selectChip(this,'偏好：人力资源')">人力资源</span>
+      <span class="chip" onclick="selectChip(this,'偏好：政府NGO')">政府/NGO</span>
+    </div>
+    <div class="ai-row" style="margin-top:4px"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>其他我没列出的方向？请自行补充（选填）：</p></div></div>
+    <div class="search-box" style="margin:0 0 4px 0;">
+      <input type="text" id="customInterestInput" placeholder="例如：游戏设计、环保、航天..." onkeydown="if(event.key==='Enter')addCustomInterest()">
+      <button class="search-btn" onclick="addCustomInterest()" style="font-size:12px;padding:8px 12px">+</button>
+    </div>
+    <div class="chip-row" id="customInterestsRow"></div>
+    <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>你期望的<b>工作模式</b>是？（可多选）</p></div></div>
+    <div class="chip-row">
+      <span class="chip" onclick="selectChip(this,'模式：独立完成')">独立完成任务</span>
+      <span class="chip" onclick="selectChip(this,'模式：团队协作')">团队协作推进</span>
+      <span class="chip" onclick="selectChip(this,'模式：管理统筹')">管理统筹规划</span>
+      <span class="chip" onclick="selectChip(this,'模式：客户对接')">客户对接沟通</span>
+      <span class="chip" onclick="selectChip(this,'模式：远程办公')">远程灵活办公</span>
+      <span class="chip" onclick="selectChip(this,'模式：跨国协作')">跨国文化协作</span>
+      <span class="chip" onclick="selectChip(this,'模式：创业自由')">创业自由探索</span>
+      <span class="chip" onclick="selectChip(this,'模式：研究探索')">深度研究学习</span>
+    </div>
+  </div>
+  <div style="padding:0 20px 12px;">
+    <button class="btn" onclick="nextScreen(5)">继续下一步</button>
+  </div>
+</div>
+<!-- ==================== SCREEN 6: Work Mode Gallery ==================== -->
+<div class="screen" data-screen="6">
+  <div class="status-bar"><span class="time">9:45</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(5)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">工作场景体验</span>
+  </div>
+  <div class="scroll-area">
+    <div id="profileDetected" style="margin:8px 0;padding:10px 16px;background:linear-gradient(135deg,rgba(14,165,233,0.08),rgba(8,145,178,0.06));border-radius:12px;border:1px solid rgba(14,165,233,0.2);display:none;font-size:12px;color:var(--primary);text-align:center">
+      <span id="profileMajorTag"></span>
+      <span id="profileInterestTag"></span>
+    </div>
+    <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble" id="aiBubble6"><p>正在分析你的背景数据...</p></div></div>
+    <div class="step-indicator" style="display:flex;align-items:center;justify-content:center;gap:6px;margin:0 0 12px;font-size:12px;color:var(--gray)">
+      <span>💡 点击卡片进入沉浸体验</span>
+    </div>
+    <div id="modeGallery" class="chip-row" style="flex-direction:column;gap:10px">
+      <!-- dynamically filled by initModeGallery() -->
+    </div>
+  </div>
+  <div style="padding:0 20px 12px;">
+    <button class="btn btn-secondary" onclick="goScreen(9)" style="font-size:13px">跳过体验，直接选择偏好</button>
+  </div>
+  <div style="text-align:center;padding:4px;font-size:9px;color:rgba(148,163,184,0.5)">v2.9.2 | <span id="versionTs"></span></div>
+</div>
+
+<!-- ==================== SCREEN 7: Interactive Deep-Dive A ==================== -->
+<div class="screen" data-screen="7">
+  <div class="status-bar"><span class="time">9:46</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(6)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title" id="simTitleA">沉浸体验</span>
+  </div>
+  <div class="scroll-area" id="simContentA">
+    <!-- dynamically filled by startDeepDive() -->
+  </div>
+</div>
+
+<!-- ==================== SCREEN 8: Interactive Deep-Dive B ==================== -->
+<div class="screen" data-screen="8">
+  <div class="status-bar"><span class="time">9:47</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(7)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title" id="simTitleB">沉浸体验</span>
+  </div>
+  <div class="scroll-area" id="simContentB">
+    <!-- dynamically filled by startDeepDive() -->
+  </div>
+</div>
+
+<!-- ==================== SCREEN 9: Comparison & Selection ==================== -->
+<div class="screen" data-screen="9">
+  <div class="status-bar"><span class="time">9:47</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(8)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">选择你的工作方式</span>
+  </div>
+  <div class="scroll-area">
+    <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>你已体验了2种不同的工作场景。来看看对比，选出<b>最让你心动</b>的方向——这个选择将影响后续的岗位推荐。</p></div></div>
+    <div class="step-indicator" style="display:flex;align-items:center;justify-content:center;gap:6px;margin:4px 0 12px;font-size:12px;color:var(--gray)">
+      <span>👆 点击一个选项来确认你的选择</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px" id="comparisonCards">
+      <div class="scenario-card card-stroke" id="compCardA" onclick="pickMode('compCardA')" style="margin-bottom:0">
+        <div class="scenario-header">
+          <div class="scenario-icon" id="compIconA">📊</div>
+          <span class="scenario-title" id="compTitleA">未体验</span>
+        </div>
+        <p style="font-size:12px;color:var(--gray)" id="compDescA">请先在场景中体验</p>
+      </div>
+      <div class="scenario-card card-stroke" id="compCardB" onclick="pickMode('compCardB')" style="margin-bottom:0">
+        <div class="scenario-header">
+          <div class="scenario-icon" id="compIconB">💡</div>
+          <span class="scenario-title" id="compTitleB">未体验</span>
+        </div>
+        <p style="font-size:12px;color:var(--gray)" id="compDescB">请先在场景中体验</p>
+      </div>
+    </div>
+    <div id="compareDetail" style="display:none;margin-bottom:8px">
+      <div class="card" style="background:linear-gradient(135deg, rgba(22,163,74,0.04), rgba(14,165,233,0.04)); border:1px solid var(--accent-light)" id="selectedModeCard">
+        <!-- filled dynamically -->
+      </div>
+    </div>
+    <div id="quickPickGrid" style="display:none;margin-bottom:12px"></div>
+    <button class="btn" id="compareConfirmBtn" style="display:none" onclick="confirmModeSelection()">确认选择，继续匹配 →</button>
+    <div style="height:12px"></div>
+    <button class="btn btn-secondary" onclick="goScreen(6)" style="font-size:13px">← 回到场景库，重新体验<span style="font-size:10px;display:block;font-weight:400;opacity:0.7">（可跳转至前一页选择体验其他工作模式）</span></button>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 10: Career Summary ==================== -->
+<div class="screen" data-screen="10">
+  <div class="status-bar"><span class="time">9:48</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(9)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">你的职业画像</span>
+  </div>
+  <div class="scroll-area">
+    <div class="card" id="profileCard" style="background:linear-gradient(135deg, rgba(2,132,199,0.05), rgba(14,165,233,0.1)); border:1.5px solid var(--accent-light)">
+      <h3 style="font-size:18px;color:var(--primary-light);margin-bottom:12px">📋 你的职业画像</h3>
+      <div id="profileContent">
+        <div class="tip-item" style="margin-bottom:8px"><div class="feature-dot green" style="width:6px;height:6px;border-radius:3px;margin-top:7px"></div><span class="tip-text"><b>学历背景：</b><span id="profile-edu">-</span></span></div>
+        <div class="tip-item" style="margin-bottom:8px"><div class="feature-dot blue" style="width:6px;height:6px;border-radius:3px;margin-top:7px"></div><span class="tip-text"><b>技术技能：</b><span id="profile-tech">-</span></span></div>
+        <div class="tip-item" style="margin-bottom:8px"><div class="feature-dot blue" style="width:6px;height:6px;border-radius:3px;margin-top:7px"></div><span class="tip-text"><b>软技能：</b><span id="profile-soft">-</span></span></div>
+        <div class="tip-item" style="margin-bottom:8px"><div class="feature-dot green" style="width:6px;height:6px;border-radius:3px;margin-top:7px"></div><span class="tip-text"><b>经验经历：</b><span id="profile-exp">-</span></span></div>
+        <div class="tip-item" style="margin-bottom:8px"><div class="feature-dot green" style="width:6px;height:6px;border-radius:3px;margin-top:7px"></div><span class="tip-text"><b>职业兴趣：</b><span id="profile-interest">-</span></span></div>
+        <div class="tip-item"><div class="feature-dot blue" style="width:6px;height:6px;border-radius:3px;margin-top:7px"></div><span class="tip-text"><b>工作模式偏好：</b><span id="profile-mode">-</span></span></div>
+      </div>
+    </div>
+    <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>根据我们的交流，这就是我对你的职业画像总结。<b>这是否符合你的期望？</b></p></div></div>
+    <button class="btn" onclick="goScreen(13)">是的，这就是我的方向</button>
+    <button class="btn btn-secondary" onclick="goScreen(11)">不太确定，再探索一下</button>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 11: Re-exploration ==================== -->
+<div class="screen" data-screen="11">
+  <div class="status-bar"><span class="time">9:49</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(10)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">重新探索</span>
+  </div>
+  <div class="scroll-area" id="chat11">
+    <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>没关系！找工作是一段探索的旅程。让我们进一步聊聊——<br><br><b>你觉得之前的总结中，哪个部分最不符合你的预期？</b></p></div></div>
+    <div class="chip-row">
+      <span class="chip" onclick="reExplore(this,'专业方向不准确')">专业方向不准确</span>
+      <span class="chip" onclick="reExplore(this,'技能描述不完整')">技能描述不完整</span>
+      <span class="chip" onclick="reExplore(this,'兴趣方向想调整')">兴趣方向想调整</span>
+      <span class="chip" onclick="reExplore(this,'工作方式不喜欢')">工作方式不喜欢</span>
+      <span class="chip" onclick="reExplore(this,'想看看其他可能')">想看看其他可能</span>
+    </div>
+    <div id="reexploreResponse" style="display:none">
+      <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble" id="reexploreBubble"><p></p></div></div>
+      <div class="chip-row" id="reexploreChips"></div>
+      <div style="display:flex;gap:10px;flex-direction:column;margin-top:8px">
+        <button class="btn btn-secondary" onclick="goScreen(10)">回到职业画像</button>
+        <button class="btn btn-outline" onclick="goScreen(12)">探索更多职业可能 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 12: Alternative Careers ==================== -->
+<div class="screen" data-screen="12">
+  <div class="status-bar"><span class="time">9:50</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(11)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">更多职业可能</span>
+  </div>
+  <div class="scroll-area">
+    <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>基于你的背景和反馈，这里有一些<b>你可能感兴趣的其他方向</b>：</p></div></div>
+    <div class="scenario-card" onclick="this.classList.toggle('selected');document.getElementById('altConfirm').style.display='block'" style="margin-bottom:8px">
+      <div class="scenario-header">
+        <div class="scenario-icon" style="background:rgba(139,92,246,0.1)">📈</div>
+        <span class="scenario-title">量化研究员</span>
+      </div>
+      <p style="font-size:13px;color:var(--gray)">用数学模型和编程开发交易策略，在金融市场中挖掘alpha</p>
+      <div class="scenario-tag" style="background:rgba(139,92,246,0.08);color:#7C3AED">适合：数学功底强、喜欢编程</div>
+    </div>
+    <div class="scenario-card" onclick="this.classList.toggle('selected');document.getElementById('altConfirm').style.display='block'" style="margin-bottom:8px">
+      <div class="scenario-header">
+        <div class="scenario-icon" style="background:rgba(245,158,11,0.1)">🔬</div>
+        <span class="scenario-title">商业分析师</span>
+      </div>
+      <p style="font-size:13px;color:var(--gray)">深入理解业务逻辑，通过数据洞察驱动战略决策和运营优化</p>
+      <div class="scenario-tag" style="background:rgba(245,158,11,0.08);color:#D97706">适合：商业嗅觉敏锐、善于沟通</div>
+    </div>
+    <div class="scenario-card" onclick="this.classList.toggle('selected');document.getElementById('altConfirm').style.display='block'" style="margin-bottom:8px">
+      <div class="scenario-header">
+        <div class="scenario-icon" style="background:rgba(236,72,153,0.1)">🎯</div>
+        <span class="scenario-title">风险管理师</span>
+      </div>
+      <p style="font-size:13px;color:var(--gray)">评估金融风险、建立风控模型，保障公司和客户的资产安全</p>
+      <div class="scenario-tag" style="background:rgba(236,72,153,0.08);color:#DB2777">适合：细心严谨、风险意识强</div>
+    </div>
+    <div class="scenario-card" onclick="this.classList.toggle('selected');document.getElementById('altConfirm').style.display='block'" style="margin-bottom:8px">
+      <div class="scenario-header">
+        <div class="scenario-icon" style="background:rgba(2,132,199,0.1)">🤖</div>
+        <span class="scenario-title">AI策略产品经理</span>
+      </div>
+      <p style="font-size:13px;color:var(--gray)">结合技术理解与产品思维，设计AI驱动的创新产品和服务</p>
+      <div class="scenario-tag" style="background:rgba(2,132,199,0.08);color:#0369A1">适合：技术+商业复合背景</div>
+    </div>
+    <button class="btn" id="altConfirm" style="display:none" onclick="nextScreen(12)">确认新方向，开始岗位匹配</button>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 13: Expanded Job Matches ==================== -->
+<div class="screen" data-screen="13">
+  <div class="status-bar"><span class="time">9:51</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(12)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">岗位市场匹配</span>
+  </div>
+  <div class="scroll-area" id="jobMatchList">
+    <!-- Dynamically generated by initJobMatches() -->
+  </div>
+</div>
+
+<!-- ==================== SCREEN 14: Job Detail (Dynamic) ==================== -->
+<div class="screen" data-screen="14">
+  <div class="status-bar"><span class="time">9:52</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(13)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">岗位详情</span>
+  </div>
+  <div class="scroll-area" id="jobDetailContent">
+    <!-- Dynamically generated by openJobDetail() -->
+  </div>
+</div>
+
+<!-- ==================== SCREEN 15: Resume Choice & Advice ==================== -->
+<div class="screen" data-screen="15">
+  <div class="status-bar"><span class="time">9:52</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(14)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">简历准备</span>
+  </div>
+  <div class="scroll-area" id="resumeChoiceArea">
+    <!-- Choice View (default) -->
+    <div id="resumeChoiceView">
+      <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>在开始岗位匹配优化之前，我需要了解你的<b>简历准备情况</b>。请选择以下一项：</p></div></div>
+      <div class="choice-btn-group">
+        <div class="choice-card-btn" onclick="goToResumeUpload()">
+          <div class="choice-icon" style="background:rgba(22,163,74,0.1)">📄</div>
+          <div class="choice-info">
+            <div class="choice-title">我已有简历</div>
+            <div class="choice-desc">上传现有简历，我将为你进行深度分析并提供针对性优化建议</div>
+          </div>
+          <div class="choice-arrow">→</div>
+        </div>
+        <div class="choice-card-btn" onclick="showResumeAdvice()">
+          <div class="choice-icon" style="background:rgba(2,132,199,0.1)">✍️</div>
+          <div class="choice-info">
+            <div class="choice-title">我还没有简历</div>
+            <div class="choice-desc">我会根据你的职业画像，为你提供专业的简历撰写指导和结构建议</div>
+          </div>
+          <div class="choice-arrow">→</div>
+        </div>
+      </div>
+    </div>
+    <!-- Advice View (hidden by default) -->
+    <div id="resumeAdviceView" style="display:none">
+      <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>没问题！根据你的<b id="adviceJobTitle">职业画像</b>，我为你准备了一份<b>个性化简历撰写指南</b>。</p></div></div>
+      <div id="resumeAdviceContent">
+        <!-- Dynamically generated by generateResumeAdvice() -->
+      </div>
+      <button class="btn" onclick="finishResumeAdvice()" style="margin-top:12px">已了解，去上传简历 →</button>
+      <button class="btn btn-outline" onclick="skipResumeEntirely()" style="margin-top:8px;font-size:13px">跳过简历步骤，直接进入面试准备</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 16: Resume Upload ==================== -->
+<div class="screen" data-screen="16">
+  <div class="status-bar"><span class="time">9:53</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(14)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">上传简历</span>
+  </div>
+  <div class="scroll-area">
+    <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>要让简历与岗位高度匹配，请<b>上传你的简历</b>，我将为你提供针对性的优化建议。</p></div></div>
+    <input type="file" id="resumeFileInput" accept=".pdf,.doc,.docx,.txt" style="display:none" onchange="handleResumeFile(event)">
+    <div class="upload-zone" id="uploadZone"
+      onclick="document.getElementById('resumeFileInput').click()"
+      ondragover="handleDragOver(event)"
+      ondragleave="handleDragLeave(event)"
+      ondrop="handleDrop(event)">
+      <div class="upload-icon">📄</div>
+      <div class="upload-text" id="uploadText">点击上传或拖拽简历文件</div>
+      <div class="upload-hint">支持 PDF / Word / TXT 格式，不超过10MB</div>
+    </div>
+    <div id="uploadStatus" style="display:none">
+      <div class="card" style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:24px">✅</div>
+        <div><b style="font-size:14px;color:var(--primary)">简历上传成功</b><br><span style="font-size:12px;color:var(--gray)" id="uploadedFileInfo"></span></div>
+      </div>
+      <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>简历已收到！正在分析你的简历内容与目标岗位的匹配度……<br><br><span class="typing"><span></span><span></span><span></span></span></p></div></div>
+    </div>
+  </div>
+  <div style="padding:0 20px 12px;">
+    <button class="btn" id="uploadNextBtn" disabled onclick="startResumeAnalysis()">上传后开始分析</button>
+    <span class="skip-link" onclick="skipResumeUpload()">跳过此步骤，直接进入面试准备 →</span>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 17: Resume Analysis ==================== -->
+<div class="screen" data-screen="17">
+  <div class="status-bar"><span class="time">9:54</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(16)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">简历匹配分析</span>
+  </div>
+  <div class="scroll-area" id="analysisScroll">
+    <!-- Analysis progress area -->
+    <div id="analysisProgress">
+      <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>正在深度分析你的简历，请稍候…</p></div></div>
+      <div id="analysisPhases" style="padding:0 42px;margin-top:8px"></div>
+      <div style="text-align:center;padding:16px 0">
+        <span class="typing" id="analysisTyping"><span></span><span></span><span></span></span>
+      </div>
+    </div>
+    <!-- Result area (hidden until analysis completes) -->
+    <div id="analysisResult" style="display:none">
+      <div class="card">
+        <div class="match-score" style="margin-bottom:12px">
+          <div class="score-ring" id="matchScoreRing">--%</div>
+          <div>
+            <b style="font-size:15px;color:var(--primary)">简历匹配度</b>
+            <p style="font-size:12px;color:var(--gray)" id="matchJobTitle">分析中...</p>
+          </div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-item"><span class="stat-num green" id="statOverall">--%</span><span class="stat-label">综合匹配</span></div>
+          <div class="stat-item"><span class="stat-num blue" id="statSkill">--%</span><span class="stat-label">技能匹配</span></div>
+          <div class="stat-item"><span class="stat-num sky" id="statExp">--%</span><span class="stat-label">经验匹配</span></div>
+        </div>
+      </div>
+      <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p id="analysisSummary">分析完成！以下是针对你简历的具体优化建议。</p></div></div>
+    </div>
+  </div>
+  <div style="padding:0 20px 12px;">
+    <button class="btn" id="analysisNextBtn" disabled onclick="goScreen(18)" style="opacity:0.5">分析中，请稍候...</button>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 18: Resume Targeted Tips ==================== -->
+<div class="screen" data-screen="18">
+  <div class="status-bar"><span class="time">9:54</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(17)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">简历优化建议</span>
+  </div>
+  <div class="scroll-area" id="resumeTipsArea">
+    <!-- Dynamically generated by generateResumeTips() -->
+  </div>
+  <div style="padding:0 20px 12px;">
+    <button class="btn" onclick="nextScreen(18)">获取面试准备方案</button>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 19: Interview Technical Prep ==================== -->
+<div class="screen" data-screen="19">
+  <div class="status-bar"><span class="time">9:55</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(18)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">面试准备</span>
+  </div>
+  <div class="scroll-area" id="interviewPrepArea">
+    <!-- Dynamically generated by initInterviewPrep() -->
+  </div>
+  <div style="padding:0 20px 12px;">
+    <button class="btn" onclick="nextScreen(19)">完成准备，查看总结</button>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 20: Interview Behavioral ==================== -->
+<div class="screen" data-screen="20">
+  <div class="status-bar"><span class="time">9:56</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(19)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">面试模拟</span>
+  </div>
+  <div class="scroll-area" id="interviewSimArea">
+    <!-- Dynamically generated by initInterviewSim() -->
+  </div>
+  <div style="padding:0 20px 12px;">
+    <button class="btn" onclick="goScreen(21)">我准备好了！</button>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 21: Tips for Interview ==================== -->
+<div class="screen" data-screen="21">
+  <div class="status-bar"><span class="time">9:57</span></div>
+  <div class="header">
+    <button class="back-btn" onclick="goScreen(20)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19L8 12L15 5" stroke="#0C4A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="header-title">求职锦囊</span>
+  </div>
+  <div class="scroll-area" id="jobTipsArea">
+    <!-- Dynamically generated by initJobTips() -->
+  </div>
+  <div style="padding:0 20px 12px; display:flex; justify-content:flex-end;">
+    <button class="btn btn-outline" onclick="goScreen(22)" style="font-size:13px; padding:8px 16px;">继续 →</button>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 22: Blessing & Farewell ==================== -->
+<div class="screen" data-screen="22">
+  <div class="scroll-area" style="background:linear-gradient(180deg, #F0F9FF 0%, #E0F2FE 50%, #BAE6FD 100%); align-items:center; gap:18px; padding-top:28px; padding-bottom:36px;">
+    <div class="success-icon" style="font-size:40px;flex-shrink:0;">🎊</div>
+    <h1 style="font-size:26px;color:var(--primary);text-align:center;flex-shrink:0;margin:0;">前程似锦，未来可期</h1>
+    <p style="font-size:14px;color:var(--gray);text-align:center;flex-shrink:0;margin:0;" id="successSubtitle">你已经完成了完整的求职准备流程</p>
+
+    <!-- Golden wish message -->
+    <div id="goldenWishCard" style="width:100%;flex-shrink:0;text-align:center;background:linear-gradient(135deg,#FFF8E1 0%,#FFE082 30%,#FFD54F 60%,#FFC107 100%);border:2px solid #F59E0B;border-radius:16px;padding:18px 16px;box-shadow:0 4px 20px rgba(245,158,11,0.3),inset 0 0 30px rgba(255,215,0,0.15);">
+      <div style="font-size:28px;margin-bottom:6px;">🏆</div>
+      <p style="font-size:18px;font-weight:800;color:#B45309;line-height:1.6;margin:0;letter-spacing:1px;" id="goldenWishText">
+        祝您面试成功拿到Offer！
+      </p>
+      <p style="font-size:12px;color:#92400E;margin:8px 0 0 0;" id="goldenWishSubtitle">你已经为这一刻做好了万全准备</p>
+    </div>
+
+    <div class="stats-row" style="width:100%;flex-shrink:0;">
+      <div class="stat-item"><span class="stat-num blue" id="finalMatchScore">--%</span><span class="stat-label">简历匹配度</span></div>
+      <div class="stat-item"><span class="stat-num green" id="finalTipCount">6</span><span class="stat-label">优化建议</span></div>
+      <div class="stat-item"><span class="stat-num sky" id="finalPrepCount">10</span><span class="stat-label">面试要点</span></div>
+    </div>
+    <div class="card" style="width:100%;flex-shrink:0;text-align:center;background:linear-gradient(135deg,#FFFFFF,#F0F9FF);border:1px solid var(--accent-light);">
+      <div style="font-size:36px;margin-bottom:8px;">🌟</div>
+      <p style="font-size:14px;color:var(--primary);line-height:2;margin:0" id="finalMessage">
+        每一份简历都是一次重新认识自己的旅程。<br>
+        每一个面试都是一次成长的历练。<br><br>
+        你已经做好了充分的准备，<br>
+        现在，勇敢地向前走吧！<br><br>
+        <b style="font-size:16px;color:var(--accent)">愿你在这段求职之路上，<br>遇见最好的自己。</b>
+      </p>
+    </div>
+    <div class="card" style="width:100%;flex-shrink:0;text-align:center;background:linear-gradient(135deg,#FEF3C7,#FDE68A);border:none;">
+      <div style="font-size:13px;color:#92400E;line-height:1.9;">
+        <b>💡 求职小贴士</b><br><br>
+        保持自信，展现真实的自己<br>
+        每一次失败都是下一次成功的铺垫<br>
+        记得照顾好自己，保持积极心态<br>
+        你的努力，时间看得见 ✨
+      </div>
+    </div>
+    <button class="btn" style="width:100%;flex-shrink:0;font-size:15px;padding:14px;" onclick="resetApp()">返回首页</button>
+    <p style="font-size:11px;color:var(--gray-light);text-align:center;margin:0;flex-shrink:0;">智途 AI · 与你同行每一步</p>
+    <div style="height:8px;flex-shrink:0;"></div>
+  </div>
+</div>
+
+</div><!-- /phone-frame -->
+</div><!-- /app-container -->
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== STATE =====
+let currentScreen = 1;
+let totalScreens = 22;
+const selectedChips = {};
+const responses = {};
+const profileData = {
+  education: '',
+  major: '',
+  techSkills: [],
+  softSkills: [],
+  customSkills: [],
+  experience: '',
+  expDuration: '',
+  interest: '',
+  customInterests: [],
+  workModePref: '',
+  workModeName: '',
+  selectedJob: ''
+};
+
+// ===== NAVIGATION =====
+function goScreen(n) {
+  const old = document.querySelector(`[data-screen="${currentScreen}"]`);
+  const next = document.querySelector(`[data-screen="${n}"]`);
+  if (!next) return;
+
+  old.classList.remove('active');
+  old.classList.add('exit-left');
+  next.classList.add('active');
+  currentScreen = n;
+
+  // Clean exit class
+  setTimeout(() => old.classList.remove('exit-left'), 400);
+
+  // Auto-scroll to top
+  const scroll = next.querySelector('.scroll-area');
+  if (scroll) scroll.scrollTop = 0;
+
+  // Screen-specific init
+  if (n === 6) initModeGallery();
+  if (n === 7 && currentDeepDive && !document.getElementById('simContentA').innerHTML.trim()) startDeepDive(viewedModes[0] || 'data', 7);
+  if (n === 8 && !document.getElementById('simContentB').innerHTML.trim()) {
+    // Auto-pick second mode: next unviewed from personalized ranking
+    let nextMode = 'data';
+    const { ranked } = getPersonalizedModes();
+    for (const mid of ranked) {
+      if (!viewedModes.includes(mid)) { nextMode = mid; break; }
+    }
+    startDeepDive(nextMode, 8);
+  }
+  if (n === 9) initComparison();
+  if (n === 13) initJobMatches();
+  if (n === 17 && analysisRunning === false) {
+    // Ensure result is visible if analysis was previously completed
+    const resultEl = document.getElementById('analysisResult');
+    const progressEl = document.getElementById('analysisProgress');
+    if (resultEl && progressEl && resultEl.style.display !== 'none') {
+      progressEl.style.display = 'none';
+      resultEl.style.display = '';
+    }
+  }
+  if (n === 18) generateResumeTips();
+  if (n === 19) initInterviewPrep();
+  if (n === 20) initInterviewSim();
+  if (n === 21) initJobTips();
+  if (n === 22) initSuccessScreen();
+  if (n === 10) generateProfile();
+  if (n === 11) reExploreInit();
+  if (n === 15) initResumeChoice();
+}
+
+function nextScreen(from) {
+  const chips = document.querySelector(`[data-screen="${from}"] .chip.selected`);
+  if (from === 2 && chips) responses['education'] = chips.textContent;
+  if (from === 4) {
+    const expChip = document.querySelector(`[data-screen="4"] .chip.selected`);
+    // Only show follow-up if NOT "暂无经验"
+    if (expChip && expChip.textContent !== '暂无经验') {
+      document.getElementById('expFollow').style.display = 'block';
+    }
+  }
+  goScreen(from + 1);
+}
+
+// ===== CHIP SELECTION =====
+function selectChip(el, value) {
+  const parent = el.parentElement;
+  const allChips = parent.querySelectorAll('.chip');
+  const screenId = el.closest('.screen')?.dataset?.screen;
+
+  // Determine if single-select (on screens with radio-like behavior)
+  const isSingleSelect = parent.closest('#expFollow') === null && 
+    (screenId === '2' || screenId === '4' || screenId === '9');
+
+  if (isSingleSelect) {
+    // Deselect all siblings first
+    allChips.forEach(c => c.classList.remove('selected'));
+  }
+  el.classList.toggle('selected');
+
+  // Track selections by screen
+  if (screenId === '2') {
+    const selectedEdu = parent.querySelectorAll('.chip.selected');
+    selectedEdu.forEach(c => {
+      const txt = (value || c.textContent);
+      if (txt.includes('学历')) profileData.education = txt.replace('学历：','');
+      if (txt.includes('专业')) profileData.major = txt.replace('专业：','');
+    });
+  }
+  if (screenId === '3') {
+    profileData.techSkills = [];
+    profileData.softSkills = [];
+    document.querySelectorAll('#techChips .chip.selected').forEach(c => profileData.techSkills.push(c.textContent));
+    document.querySelectorAll('#toolChips .chip.selected').forEach(c => profileData.techSkills.push(c.textContent));
+    document.querySelectorAll('#softChips .chip.selected').forEach(c => profileData.softSkills.push(c.textContent));
+    // Show feedback
+    updateSkillsFeedback();
+  }
+  if (screenId === '4') {
+    const expChips = document.querySelector('[data-screen="4"] .chip-row .chip.selected');
+    if (expChips) {
+      const txt = (value || expChips.textContent);
+      if (txt.includes('经历')) profileData.experience = txt.replace('经历：','');
+      if (txt.includes('时长')) profileData.expDuration = txt.replace('时长：','');
+    }
+    // If user selected "暂无经验", hide follow-up fields and clear duration
+    if (profileData.experience === '暂无经验') {
+      document.getElementById('expFollow').style.display = 'none';
+      profileData.expDuration = '';
+      // Deselect any previously selected duration chips
+      document.querySelectorAll('#expFollow .chip.selected').forEach(c => c.classList.remove('selected'));
+    } else if (!parent.closest('#expFollow')) {
+      document.getElementById('expFollow').style.display = 'block';
+    }
+    // Track duration chips
+    const durChips = document.querySelector('#expFollow .chip.selected');
+    if (durChips && profileData.experience !== '暂无经验') {
+      profileData.expDuration = durChips.textContent;
+    }
+  }
+  if (screenId === '5') {
+    const allSelected = parent.closest('.screen').querySelectorAll('.chip.selected');
+    let interests = [];
+    let modes = [];
+    allSelected.forEach(c => {
+      const txt = c.textContent;
+      if (['技术研发','数据分析','产品设计','金融投资','市场运营','咨询顾问','人工智能','教育培训','医疗健康','文化传媒','供应链/物流','法律合规','人力资源','政府/NGO'].includes(txt)) interests.push(txt);
+      if (['独立完成任务','团队协作推进','管理统筹规划','客户对接沟通','远程灵活办公','跨国文化协作','创业自由探索','深度研究学习'].includes(txt)) modes.push(txt);
+    });
+    profileData.interest = interests.join('、') || profileData.interest;
+    profileData.workModePref = modes.join('、') || profileData.workModePref;
+  }
+}
+
+// ===== CUSTOM SKILL & INTEREST INPUT =====
+function addCustomSkill() {
+  const input = document.getElementById('customSkillInput');
+  const row = document.getElementById('customSkillsRow');
+  if (!input || !row || !input.value.trim()) return;
+  
+  const txt = input.value.trim();
+  
+  // Check duplicates
+  if (profileData.customSkills.includes(txt)) {
+    showToast('"' + txt + '" 已添加');
+    input.value = '';
+    return;
+  }
+  
+  // Add to profileData
+  profileData.customSkills.push(txt);
+  
+  // Create chip in DOM
+  const chip = document.createElement('span');
+  chip.className = 'chip selected';
+  chip.textContent = txt;
+  chip.title = '点击移除';
+  chip.style.cursor = 'pointer';
+  chip.onclick = function() {
+    // Remove from array
+    const idx = profileData.customSkills.indexOf(txt);
+    if (idx > -1) profileData.customSkills.splice(idx, 1);
+    chip.remove();
+    updateSkillsFeedback();
+  };
+  row.appendChild(chip);
+  
+  // Show feedback
+  document.getElementById('selectedSkillsRow').style.display = 'block';
+  updateSkillsFeedback();
+  
+  input.value = '';
+  input.focus();
+  showToast('已添加：' + txt);
+}
+
+function updateSkillsFeedback() {
+  const row = document.getElementById('selectedSkillsRow');
+  const fb = document.getElementById('skillsFeedback');
+  if (!fb) return;
+  const selTech = document.querySelectorAll('#techChips .chip.selected, #toolChips .chip.selected').length;
+  const selSoft = document.querySelectorAll('#softChips .chip.selected').length;
+  const selCustom = profileData.customSkills.length;
+  let msg = '已记录你的技能选择';
+  const parts = [];
+  if (selTech > 0) parts.push(selTech + '项技术技能');
+  if (selSoft > 0) parts.push(selSoft + '项软技能');
+  if (selCustom > 0) parts.push(selCustom + '项自定义技能');
+  if (parts.length > 0) msg += '（' + parts.join('，') + '）';
+  fb.textContent = msg;
+  if (row && (selTech + selSoft + selCustom) > 0) row.style.display = 'block';
+}
+
+function addCustomInterest() {
+  const input = document.getElementById('customInterestInput');
+  const row = document.getElementById('customInterestsRow');
+  if (!input || !row || !input.value.trim()) return;
+  
+  const txt = input.value.trim();
+  
+  // Check duplicates
+  if (profileData.customInterests.includes(txt)) {
+    showToast('"' + txt + '" 已添加');
+    input.value = '';
+    return;
+  }
+  
+  // Add to profileData
+  profileData.customInterests.push(txt);
+  
+  // Create chip in DOM
+  const chip = document.createElement('span');
+  chip.className = 'chip selected';
+  chip.textContent = txt;
+  chip.title = '点击移除';
+  chip.style.cursor = 'pointer';
+  chip.onclick = function() {
+    const idx = profileData.customInterests.indexOf(txt);
+    if (idx > -1) profileData.customInterests.splice(idx, 1);
+    chip.remove();
+  };
+  row.appendChild(chip);
+  
+  input.value = '';
+  input.focus();
+  showToast('已添加：' + txt);
+}
+
+// ===== WORK MODE DATA =====
+const workModes = {
+  tech: {
+    id: 'tech', icon: '💻', name: '技术研发', color: '#7C3AED', bg: 'rgba(124,58,237,0.08)',
+    tag: '适合：热爱编码、喜欢从技术层面解决问题的人',
+    desc: '写代码、做架构、解决技术难题——用技术实力改变世界',
+    timeBlocks: [
+      { time: '09:30', desc: '站会同步昨日进度，认领今日开发任务' },
+      { time: '10:00', desc: '专注编码：实现用户认证模块的JWT token刷新机制' },
+      { time: '11:30', desc: 'Code Review：审查团队成员提交的PR，给出优化建议' },
+      { time: '14:00', desc: '技术方案评审：讨论下季度微服务架构迁移方案' },
+      { time: '16:00', desc: '排查线上BUG：定位一个偶发的接口超时问题' },
+      { time: '18:00', desc: '写技术文档，更新内部Wiki知识库' }
+    ],
+    decisions: [
+      { q: '做架构选型时，团队在「微服务」和「单体优先」之间犹豫。你会怎么选？', opts: ['微服务：长远看更灵活', '单体优先：快速验证产品', '先调研后再决定'], res: ['很好的前瞻性思维！不过需要注意微服务带来的运维复杂度。', '务实的选择！可以先验证PMF再拆分，降低早期风险。', '数据驱动的决策方式，这是优秀工程师的品质。'] },
+      { q: '你发现同事的代码有明显的性能问题，但他已经加班一周赶进度了。你会怎么做？', opts: ['私下沟通，温和指出', '先帮他改了，事后告知', '在Code Review时客观提出'], res: ['沟通能力是技术人员最被低估的技能。', '行动力强！但要注意让对方理解而不是困惑。', '专业且有边界感——最受团队欢迎的做法。'] }
+    ]
+  },
+  data: {
+    id: 'data', icon: '📊', name: '数据分析师', color: '#0369A1', bg: 'rgba(2,132,199,0.08)',
+    tag: '适合：逻辑思维强、喜欢用数据说话的人',
+    desc: '用数据发现问题、验证假设、驱动业务决策',
+    timeBlocks: [
+      { time: '09:30', desc: '查看昨日业务数据看板，发现用户留存异常下降3%' },
+      { time: '10:00', desc: '用SQL提取用户行为数据，在Python中做漏斗分析' },
+      { time: '11:30', desc: '制作可视化报告，标注关键发现点' },
+      { time: '14:00', desc: '与产品经理和运营团队开会，汇报分析结果' },
+      { time: '16:00', desc: '设计A/B测试方案，推动数据驱动的产品优化' },
+      { time: '18:00', desc: '整理日报，更新核心指标追踪表' }
+    ],
+    decisions: [
+      { q: '产品经理要求「尽快」出一个数据报告，但你发现原始数据有质量问题。你怎么处理？', opts: ['先出报告再说明数据问题', '先清洗数据，延后1天交付', '沟通数据风险，协商合理时间'], res: ['速度优先但可能误导决策。', '质量优先，专业负责的态度。', '平衡沟通能力——这是高级数据分析师的核心技能！'] },
+      { q: '你的分析发现一个结论与领导的直觉判断相反。你会如何汇报？', opts: ['坚持数据结论，逐条辩论', '补充更多数据维度的对比', '先肯定直觉，再展示数据差异'], res: ['数据人员的骨气！但要讲究沟通技巧。', '严谨！更多维度能让结论更有说服力。', '高情商的数据沟通——用同理心包装数据洞察。'] }
+    ]
+  },
+  product: {
+    id: 'product', icon: '💡', name: '产品经理', color: '#16A34A', bg: 'rgba(22,163,74,0.08)',
+    tag: '适合：善于沟通、喜欢从0到1创造的人',
+    desc: '洞察用户需求，定义产品方向，协调多方落地',
+    timeBlocks: [
+      { time: '09:30', desc: '站会同步研发进度，解答开发对需求文档的疑问' },
+      { time: '10:30', desc: '用户访谈：了解目标用户在使用过程中真正的痛点' },
+      { time: '13:00', desc: '竞品分析：研究竞争对手最近上线的功能与策略' },
+      { time: '15:00', desc: '撰写下个版本PRD，设计核心功能流程与交互逻辑' },
+      { time: '17:00', desc: '与设计师讨论交互方案，对齐视觉与体验细节' },
+      { time: '19:00', desc: '查看A/B测试数据，决定下个迭代的优先级' }
+    ],
+    decisions: [
+      { q: '上线前3天，研发说你的一个核心功能做不了。你会怎么选择？', opts: ['砍掉这个功能，换个简化版', '和研发一起死磕技术方案', '推迟上线时间，保证体验'], res: ['果断！产品经理要懂取舍，80/20原则。', '技术深入度决定产品力上限。', '对体验有极致追求，但要评估商业影响。'] },
+      { q: '用户说想要A功能，但数据表明他们实际需要B功能。你信哪个？', opts: ['以用户反馈为准', '以数据为准', '做快速原型验证两者'], res: ['用户说出来的不一定是真正需要的。', '数据思维，但小心「测量偏差」。', '最科学的方式！快速验证是产品经理的武器。'] }
+    ]
+  },
+  finance: {
+    id: 'finance', icon: '📈', name: '金融投资', color: '#DC2626', bg: 'rgba(220,38,38,0.08)',
+    tag: '适合：对宏观趋势敏感、风险收益权衡能力强的人',
+    desc: '研究市场趋势，构建投资组合，管理风险敞口',
+    timeBlocks: [
+      { time: '08:30', desc: '晨会：复盘昨日全球市场，讨论今日策略方向' },
+      { time: '09:30', desc: '分析美联储最新政策声明，调整利率预期模型' },
+      { time: '11:00', desc: '筛选今日潜在交易标的，计算风险收益比' },
+      { time: '13:30', desc: '建模：用Python回测一个新的量化策略' },
+      { time: '15:30', desc: '与基金经理讨论组合再平衡方案' },
+      { time: '17:00', desc: '撰写每日投资备忘录，记录关键决策逻辑' }
+    ],
+    decisions: [
+      { q: '你持有的一个重仓股突然发布业绩预警，盘前跌了15%。你怎么办？', opts: ['立即止损卖出', '加仓（平均成本）', '等待更多信息，暂不操作'], res: ['纪律性止损——但不要因为恐惧做决定。', '逆向思维需要足够的理由支撑。', '成熟的决策框架：先收集信息再行动。'] },
+      { q: '客户希望你推荐一个「保本且年化15%」的产品。你怎么回应？', opts: ['诚实告知不存在此产品', '推荐低风险+部分高风险组合', '先了解客户真实需求和期限'], res: ['诚实是金融从业者的第一准则。', '组合管理思维，但要注意合规。', '先诊断再开方——最专业的顾问式做法。'] }
+    ]
+  },
+  marketing: {
+    id: 'marketing', icon: '🚀', name: '市场运营', color: '#EA580C', bg: 'rgba(234,88,12,0.08)',
+    tag: '适合：有创意、善于洞察用户心理、执行力强的人',
+    desc: '制定增长策略，策划营销活动，分析用户生命周期',
+    timeBlocks: [
+      { time: '09:30', desc: '查看昨日各渠道投放ROI数据，优化出价策略' },
+      { time: '10:30', desc: '策划下个月的618大促活动方案和内容日历' },
+      { time: '13:00', desc: '与设计团队brainstorm新品的social传播创意' },
+      { time: '15:00', desc: '分析用户分层：新用户激活率vs老用户流失率' },
+      { time: '16:30', desc: '撰写小红书/抖音种草内容brief并审稿' },
+      { time: '18:00', desc: '复盘本周增长数据，更新下周的OKR' }
+    ],
+    decisions: [
+      { q: '你的爆款文案在竞品号上被「借鉴」了。你的反应是？', opts: ['公开维权，发律师函', '专注于持续产出好内容', '分析对方策略，反超之'], res: ['维权意识强，但注意力是稀缺资源。', '内核稳定！内容护城河在于持续创新。', '借力打力——这才是真正的增长黑客思维！'] },
+      { q: '一个渠道的获客成本突然涨了3倍，你会怎么处理？', opts: ['立即砍掉该渠道预算', '分析原因，尝试优化素材', '测试其他备选渠道'], res: ['果断但不一定最优——可能是短期波动。', '数据驱动的优化思维，运营最稀缺的能力。', '永远有Plan B——多渠道策略降低风险。'] }
+    ]
+  },
+  consulting: {
+    id: 'consulting', icon: '🏢', name: '咨询顾问', color: '#0C4A6E', bg: 'rgba(12,74,110,0.08)',
+    tag: '适合：逻辑严密、抗压能力强、喜欢挑战的人',
+    desc: '结构化分析企业问题，提供可落地的战略方案',
+    timeBlocks: [
+      { time: '08:00', desc: '客户会议：与某零售企业CEO讨论增长战略框架' },
+      { time: '10:00', desc: '团队brainstorm：用MECE原则拆解客户核心问题' },
+      { time: '13:00', desc: '行业研究：搜集对标企业数据，建立竞品分析模型' },
+      { time: '16:00', desc: '制作交付物：将分析结果转化为客户可执行的方案' },
+      { time: '18:00', desc: '内部评审：合伙人review方案，打磨逻辑链与表达' },
+      { time: '21:00', desc: '根据反馈修改deck，准备明日客户汇报' }
+    ],
+    decisions: [
+      { q: '客户CEO当面质疑你的方案「不接地气」，你会如何应对？', opts: ['现场用数据回击质疑', '承认局限，请求给更多信息', '先理解对方的视角再回应'], res: ['专业自信很重要，但缺少共鸣。', '谦虚但可能让对方觉得你不够专业。', '教科书级的咨询顾问反应——先理解再回应。'] },
+      { q: '你的团队连续加班一周赶方案，但你发现一个关键假设可能错了。怎么做？', opts: ['推倒重来，重新建模', '标注风险，继续推进', '快速验证假设后再决定'], res: ['勇气可嘉！但在咨询行业要考虑交付节奏。', '实用主义——标注不确定性能保护团队。', '最好的平衡：不做无谓返工，也不忽视风险。'] }
+    ]
+  },
+  // ==================== 14 NEW PERSONALIZED MODES ====================
+  // === 医疗健康轨道 ===
+  medical_clinical: {
+    id:'medical_clinical', icon:'🏥', name:'临床医学', color:'#DC2626', bg:'rgba(220,38,38,0.08)',
+    tag:'适合：有同理心、细致严谨、抗压能力强的人',
+    desc:'诊断疾病、制定治疗方案、守护患者生命健康',
+    timeBlocks: [
+      { time:'07:30', desc:'早交班：听取夜班护士汇报，了解病房最新动态' },
+      { time:'09:00', desc:'查房：逐一查看住院患者，调整用药和治疗方案' },
+      { time:'13:00', desc:'门诊：接诊各类患者，询问病史、体格检查、开具检查单' },
+      { time:'16:00', desc:'多学科会诊：与各科室专家讨论疑难病例' },
+      { time:'18:00', desc:'病历书写：整理当日诊疗记录，更新电子病历' },
+      { time:'21:00', desc:'夜班待命：随时准备处理病房突发状况' }
+    ],
+    decisions: [
+      { q:'患者家属情绪激动，质疑治疗方案，你如何处理？', opts:['据理力争解释医学依据','先安抚情绪再耐心沟通','请上级医生来解释'], res:['专业自信很重要，但缺少共情。','先情绪后事实——医患沟通黄金法则。','暂时回避能缓解冲突，但不利于建立信任。'] },
+      { q:'你在病历中发现同事可能误诊了某患者，怎么做？', opts:['立即纠正并告知患者','私下和同事讨论核实','按照制度上报科室主任'], res:['善意的意图可能引发医疗纠纷。','团队协作精神可贵！但需要正规流程记录。','最专业的做法——既保护患者又尊重同事。'] }
+    ]
+  },
+  medical_research: {
+    id:'medical_research', icon:'🔬', name:'医学研究', color:'#7C3AED', bg:'rgba(124,58,237,0.08)',
+    tag:'适合：好奇心强、善于实验设计、追求真理的人',
+    desc:'探索疾病机制、设计临床试验、推动医学进步',
+    timeBlocks: [
+      { time:'08:30', desc:'文献研读：追踪Nature/Lancet最新发表，整理研究思路' },
+      { time:'10:00', desc:'实验操作：在实验室进行细胞培养、PCR或动物模型实验' },
+      { time:'13:00', desc:'数据分析：用R/SPSS处理实验数据，绘制统计图表' },
+      { time:'15:30', desc:'组会讨论：与研究团队分享进展，头脑风暴解决实验瓶颈' },
+      { time:'17:00', desc:'论文写作：撰写研究论文，准备投稿材料' },
+      { time:'19:00', desc:'基金申请：准备国家自然科学基金或药企合作项目标书' }
+    ],
+    decisions: [
+      { q:'你花了半年做的实验，关键结果不显著。怎么办？', opts:['换个角度分析数据','重新设计实验方案','如实报告并寻找解释'], res:['可能有data mining嫌疑，需谨慎。','科学精神！但投入的时间成本需要考虑。','最严谨的学术态度——阴性结果也是科学贡献。'] },
+      { q:'同事建议把你的论文加上他的名字，但他贡献很少。', opts:['拒绝，只加实际贡献者','同意，维持团队关系','协商让他承担更多工作再加入'], res:['坚守学术道德底线，值得尊敬！','学术不端风险，会影响你的长期声誉。','最好的折中——既维护关系又保证公平。'] }
+    ]
+  },
+  public_health: {
+    id:'public_health', icon:'🛡️', name:'公共卫生', color:'#0891B2', bg:'rgba(8,145,178,0.08)',
+    tag:'适合：大局观强、关注社会议题、善于数据分析的人',
+    desc:'疾病预防控制、流行病学调查、制定卫生政策',
+    timeBlocks: [
+      { time:'08:00', desc:'疫情监测：查看传染病网络直报系统，分析异常聚集信号' },
+      { time:'10:00', desc:'现场流调：出现聚集性病例时立即出发，开展流行病学调查' },
+      { time:'13:00', desc:'数据分析：用GIS空间分析+时间序列模型研判疫情趋势' },
+      { time:'15:00', desc:'政策起草：撰写防控指南或卫生应急方案' },
+      { time:'17:00', desc:'健康教育：制作科普材料，向公众解释预防措施' },
+      { time:'19:00', desc:'应急演练：参与突发公共卫生事件桌面推演' }
+    ],
+    decisions: [
+      { q:'某学校出现聚集性不明原因发热，你的第一反应？', opts:['立即上报并启动应急预案','先派人采样确认病原','通知学校暂时停课'], res:['迅速果断！但需有初步判断再启动。','科学严谨——先确诊再行动避免不必要恐慌。','社会影响太大，需先有专业判断再建议。'] },
+      { q:'防控政策影响部分行业经济，你如何权衡？', opts:['公共卫生安全优先','考虑经济影响适度放宽','寻求科学平衡方案'], res:['从公卫角度完全正确。','舆情风险高，可能被质疑不够专业。','最佳实践——用风险分层做到精准防控。'] }
+    ]
+  },
+  health_management: {
+    id:'health_management', icon:'💚', name:'健康管理', color:'#059669', bg:'rgba(5,150,105,0.08)',
+    tag:'适合：善于沟通、服务意识强、关注预防医学的人',
+    desc:'制定健康管理方案、提供健康咨询、推动慢病管理',
+    timeBlocks: [
+      { time:'08:30', desc:'健康评估：为客户解读体检报告，评估健康风险因素' },
+      { time:'10:00', desc:'方案定制：根据客户年龄、病史、生活方式制定个性化健康计划' },
+      { time:'13:00', desc:'客户咨询：一对一解答健康疑问，调整饮食运动和用药建议' },
+      { time:'15:30', desc:'数据追踪：通过可穿戴设备数据监测客户健康指标变化' },
+      { time:'17:00', desc:'健康教育：策划企业/社区健康讲座内容' },
+      { time:'19:00', desc:'自我提升：学习最新循证医学和营养学研究成果' }
+    ],
+    decisions: [
+      { q:'客户BMI严重超标但抗拒改变生活方式，你怎么办？', opts:['用数据警示健康风险','从小目标开始逐步引导','推荐减肥药物作为替代'], res:['警示有效但可能引发抵触心理。','行为心理学证实——小目标成功率最高。','药物需医生处方，超出健康管理范畴。'] },
+      { q:'某企业想为员工定制健康管理方案，预算有限。', opts:['推荐全员体检+基础方案','聚焦高风险人群精准干预','只做线上健康课程'], res:['覆盖面广但针对性不强。','ROI最高的方案——精准投入产生最大健康收益。','形式大于实质，健康改善有限。'] }
+    ]
+  },
+  // === 教育轨道 ===
+  education: {
+    id:'education', icon:'📚', name:'教育培训', color:'#D97706', bg:'rgba(217,119,6,0.08)',
+    tag:'适合：热爱分享、有耐心、善于激励他人的人',
+    desc:'传道授业解惑，设计课程体系，陪伴学生成长',
+    timeBlocks: [
+      { time:'07:30', desc:'备课：根据教学大纲准备今日授课内容和课件' },
+      { time:'09:00', desc:'授课：大班理论课或小班互动讨论课' },
+      { time:'13:00', desc:'答疑辅导：办公室开放时间，学生可预约一对一答疑' },
+      { time:'15:00', desc:'教研讨论：与教研组研讨教学方法、课程改革方案' },
+      { time:'17:00', desc:'作业批改：审阅学生作业/论文，给出个性化反馈' },
+      { time:'19:00', desc:'家长沟通：通过家长会/线上平台与家长交流学生进展' }
+    ],
+    decisions: [
+      { q:'学生对你的课程不感兴趣，上课玩手机，你怎么办？', opts:['严加管教，禁止手机','反思教学，增加互动设计','课后找学生单独谈'], res:['强制手段治标不治本。','教育的本质是点燃兴趣——主动调整最可贵。','关注个体是好的，但也需从整体教学设计改善。'] },
+      { q:'一个学生成绩突然大幅下滑，你如何处理？', opts:['先找学生私下了解情况','联系家长共同关注','给他额外补课辅导'], res:['最温暖的方式——先倾听再行动。','家校协作是必要的，但要保护学生自尊。','知识帮助是好的，但需要先了解根本原因。'] }
+    ]
+  },
+  education_tech: {
+    id:'education_tech', icon:'🤖', name:'教育科技', color:'#2563EB', bg:'rgba(37,99,235,0.08)',
+    tag:'适合：教育+科技复合型、喜欢产品创新的人',
+    desc:'用AI和技术手段重塑学习体验，打造教育产品',
+    timeBlocks: [
+      { time:'09:00', desc:'用户调研：访谈教师和学生，挖掘真实教学场景中的痛点' },
+      { time:'10:30', desc:'产品迭代：与工程师评审AI自适应学习算法的优化方案' },
+      { time:'13:00', desc:'内容设计：与教研团队共创互动课程内容和知识图谱' },
+      { time:'15:00', desc:'数据分析：分析学习行为数据，优化推荐算法和难度曲线' },
+      { time:'17:00', desc:'A/B测试：设计教学效果对比实验，验证新功能效果' },
+      { time:'19:00', desc:'行业学习：研究Duolingo/Khan Academy等标杆产品的最新动态' }
+    ],
+    decisions: [
+      { q:'AI批改的分数和教师手动批改不一致，你倾向？', opts:['优化AI模型精度','AI做初筛，教师复核','保留教师批改为核心'], res:['技术驱动，但模型优化需要时间。','最佳实践——人机协同发挥各自优势。','保守但确保质量，可能影响规模化能力。'] },
+      { q:'用户反馈产品"太游戏化"影响了学习深度，？', opts:['减少游戏元素，回归教育本质','优化游戏化设计，平衡趣味与深度','按年级分段，不同用户不同策略'], res:['矫枉可能过正，游戏化的动机激励是有价值的。','优化是中间路线，但一刀切可能不适用所有场景。','最灵活的策略——不同学段对游戏化的需求确实不同。'] }
+    ]
+  },
+  // === 文化传媒轨道 ===
+  media_content: {
+    id:'media_content', icon:'✍️', name:'内容创作', color:'#EA580C', bg:'rgba(234,88,12,0.08)',
+    tag:'适合：表达欲强、有独特视角、持续输出的人',
+    desc:'挖掘有价值的故事，用文字或视频传递观点与共鸣',
+    timeBlocks: [
+      { time:'09:00', desc:'选题策划：从热点话题和用户数据中筛选高潜力内容方向' },
+      { time:'10:30', desc:'素材收集：采访、调研、拍摄，收集一手和二手素材' },
+      { time:'13:00', desc:'内容生产：撰写深度文章或剪辑视频' },
+      { time:'16:00', desc:'数据复盘：分析昨日内容的播放量、互动率、粉丝增长' },
+      { time:'18:00', desc:'热点追踪：监测社交平台趋势，捕捉突发话题机会' },
+      { time:'21:00', desc:'互动运营：回复优质评论，维护社区氛围' }
+    ],
+    decisions: [
+      { q:'你的一篇深度内容爆了，但引发了争议性评论。', opts:['评论区积极回应解释','保持沉默，等热度过去','紧跟热点再出一篇回应'], res:['主动沟通体现担当，但容易陷入无限battle。','以不变应万变，但对品牌声誉管理不够积极。','最聪明的做法——将危机转化为第二波内容机会。'] },
+      { q:'团队选题意见分裂：深度慢内容vs追热点快内容。', opts:['主攻深度，做差异化','优先追热点，抢流量','两者兼顾，用栏目区分'], res:['长期价值路线，但增长较慢。','流量思维没错，但容易同质化。','最佳内容策略——矩阵化运营覆盖不同用户需求。'] }
+    ]
+  },
+  media_brand: {
+    id:'media_brand', icon:'📣', name:'品牌传播', color:'#D946EF', bg:'rgba(217,70,239,0.08)',
+    tag:'适合：审美在线、善于讲品牌故事、懂用户心理的人',
+    desc:'塑造品牌形象，策划传播事件，建立用户心智',
+    timeBlocks: [
+      { time:'09:30', desc:'品牌策略：梳理品牌定位与核心信息屋' },
+      { time:'11:00', desc:'创意脑暴：与创意团队脑暴下季度品牌Campaign方案' },
+      { time:'14:00', desc:'物料审核：审核KV、TVC、社媒海报等品牌物料的视觉一致性' },
+      { time:'16:00', desc:'媒体对接：与媒体/KOL/agency沟通传播排期和内容Brief' },
+      { time:'18:00', desc:'舆情监测：扫描品牌提及，评估口碑健康度' },
+      { time:'20:00', desc:'竞品分析：研究竞品最新传播动作和用户反馈' }
+    ],
+    decisions: [
+      { q:'用户拍到你们产品瑕疵并发到网上，舆情发酵中。', opts:['立即发官方声明道歉','先核实再回应','用正面内容冲淡负面'], res:['回应迅速但可能不准确。','最稳妥——核实后真诚沟通最有效。','掩耳盗铃，可能引发更大的公关危机。'] },
+      { q:'品牌年轻化改版，老用户强烈不满。如何推进？', opts:['坚持改版，教育市场','保留经典版本供选择','渐进式更新，分阶段推进'], res:['品牌需要进化，但忽略核心用户的风险很大。','并存策略增加维护成本但保护基本盘。','最好的平衡——让用户逐步适应变化。'] }
+    ]
+  },
+  // === 设计轨道 ===
+  design_ux: {
+    id:'design_ux', icon:'🎨', name:'用户体验设计', color:'#F59E0B', bg:'rgba(245,158,11,0.08)',
+    tag:'适合：共情能力强、注重细节、有审美追求的人',
+    desc:'洞察用户需求，设计流畅易用的产品体验',
+    timeBlocks: [
+      { time:'09:00', desc:'用户研究：整理可用性测试录像，提取用户痛点和行为模式' },
+      { time:'10:30', desc:'信息架构：绘制用户旅程图和站点地图，梳理功能层级' },
+      { time:'13:00', desc:'交互设计：在Figma中设计关键页面的交互流程和原型' },
+      { time:'15:30', desc:'设计评审：向产品和开发团队讲解设计决策，收集反馈' },
+      { time:'17:00', desc:'迭代修改：根据评审意见修改设计稿，维护设计组件库' },
+      { time:'19:00', desc:'行业学习：浏览Dribbble/Behance/Baymard研究所的UX报告' }
+    ],
+    decisions: [
+      { q:'产品经理坚持加一个你从UX角度不认可的功能。', opts:['坚持设计原则，据理力争','先做AB测试用数据说话','妥协但记录设计债务'], res:['原则很重要，但需要学会用对方语言沟通。','最佳方式——数据比观点更有说服力。','务实但长期会积累负体验影响产品。'] },
+      { q:'用户测试发现你的设计方案有一半用户找不到核心功能。', opts:['立即大幅调整方案','分析原因后针对性优化','增加引导提示'], res:['过度反应可能引入新问题。','最科学的做法——先理解为什么再调整。','快速修补方案，但没解决根本问题。'] }
+    ]
+  },
+  design_visual: {
+    id:'design_visual', icon:'🖼️', name:'视觉创意设计', color:'#EC4899', bg:'rgba(236,72,153,0.08)',
+    tag:'适合：视觉敏感、有创意灵魂、追求美感的人',
+    desc:'用色彩、构图和创意让品牌视觉脱颖而出',
+    timeBlocks: [
+      { time:'09:30', desc:'创意构思：从Brief出发，收集Mood Board和视觉参考' },
+      { time:'11:00', desc:'品牌视觉：设计品牌VI延展，包括logo、色彩系统、辅助图形' },
+      { time:'14:00', desc:'界面设计：在Figma/Sketch中设计App界面高保真视觉稿' },
+      { time:'16:30', desc:'动效设计：用After Effects制作微交互动效 Demo' },
+      { time:'18:00', desc:'设计规范：整理和更新设计系统，输出组件规范文档' },
+      { time:'20:00', desc:'作品集整理：整理近期项目，更新个人作品集站点' }
+    ],
+    decisions: [
+      { q:'客户要你"把logo放大一点"，但你觉得会破坏构图。', opts:['按客户要求改','展示对比方案说服客户','在不影响大局的位置放大'], res:['客户满意但设计质量受损。','专业的设计师应该用视觉语言引导客户。','务实的折中，但可能在细节上妥协太多。'] },
+      { q:'年终项目高峰期，多个需求同时催稿。如何应对？', opts:['加班赶工，全部接下','按优先级排序，合理排期','外包部分需求给freelancer'], res:['敬业但不可持续，质量可能下降。','最职业的做法——管理预期比硬扛更重要。','灵活方案，但需要时间管理外部资源。'] }
+    ]
+  },
+  // === 工程/制造轨道 ===
+  engineering: {
+    id:'engineering', icon:'⚙️', name:'工程技术', color:'#6B7280', bg:'rgba(107,114,128,0.08)',
+    tag:'适合：动手能力强、喜欢解决实际问题、系统思维的人',
+    desc:'从图纸到实物，让设计方案变成可落地的产品',
+    timeBlocks: [
+      { time:'08:00', desc:'方案设计：根据需求编写技术方案和工艺路线' },
+      { time:'10:00', desc:'技术评审：与跨部门团队评审设计可行性和风险点' },
+      { time:'13:00', desc:'原型制作：在车间/实验室制作和测试原型' },
+      { time:'15:00', desc:'测试验证：进行性能测试、耐久测试和可靠性分析' },
+      { time:'17:00', desc:'工艺优化：分析生产数据，优化制造工艺和良品率' },
+      { time:'19:00', desc:'项目复盘：与项目组总结技术难点和经验教训' }
+    ],
+    decisions: [
+      { q:'供应商的关键零件质量不稳定，但交期紧迫。', opts:['坚持退货，延期交付','让步接受，加强检验','派工程师驻厂改善'], res:['质量优先，但影响项目进度。','短期可行但治标不治本。','最根本的解决方案，但资源投入较大。'] },
+      { q:'你发现设计方案存在安全隐患，但修改需要推倒重来。', opts:['立即报告，建议方案调整','标注风险，按原计划推进','寻找不推翻方案的补救措施'], res:['安全第一，这是工程师的职业道德底线。','风险太大，可能引发严重后果。','妥协方案，需要评估补救措施是否足够。'] }
+    ]
+  },
+  // === 生物医药轨道 ===
+  biotech: {
+    id:'biotech', icon:'🧬', name:'生物医药', color:'#10B981', bg:'rgba(16,185,129,0.08)',
+    tag:'适合：热爱生命科学、耐心细致、跨学科学习能力强的人',
+    desc:'从靶点发现到药物上市，用科学攻克疾病',
+    timeBlocks: [
+      { time:'08:30', desc:'文献调研：追踪靶点研究、竞品药物和临床试验最新进展' },
+      { time:'10:00', desc:'实验操作：细胞实验、蛋白纯化或动物药效/药代实验' },
+      { time:'13:00', desc:'数据分析：处理高通量筛选数据，建立构效关系模型' },
+      { time:'15:30', desc:'项目讨论：与化学、药理、临床团队跨职能会议' },
+      { time:'17:00', desc:'注册申报：撰写IND/NDA申报资料的技术章节' },
+      { time:'19:00', desc:'专利分析：检索相关专利，撰写或审核专利申请文件' }
+    ],
+    decisions: [
+      { q:'先导化合物药效很好但毒性较大，下一步？', opts:['放弃该候选分子','优化结构降低毒性','评估风险收益比后再决定'], res:['保守但可能错失好药。','最理想的路径但需要时间和资源。','专业的决策流程——用数据和科学判断。'] },
+      { q:'公司核心管线临床试验失败，团队士气低落。', opts:['分析失败原因，寻找新方向','转向现有管线推进','坦率沟通，与团队共度难关'], res:['科学家精神——从失败中学习是最宝贵的。','务实但可能错失战略窗口。','领导者担当——团队需要透明的沟通和方向感。'] }
+    ]
+  },
+  // === 法律/政策轨道 ===
+  law_policy: {
+    id:'law_policy', icon:'⚖️', name:'法律与政策', color:'#1E40AF', bg:'rgba(30,64,175,0.08)',
+    tag:'适合：逻辑缜密、正义感强、善于文字表达的人',
+    desc:'用法律保护权益，用政策推动社会进步',
+    timeBlocks: [
+      { time:'08:30', desc:'案件研究：查阅法规、判例和相关法律文献' },
+      { time:'10:00', desc:'法律文书：撰写法律意见书、合同或诉讼文书' },
+      { time:'13:00', desc:'客户会见：与当事人/客户沟通案情，提供法律建议' },
+      { time:'15:00', desc:'庭审/仲裁：出庭辩论或参与商业仲裁' },
+      { time:'17:00', desc:'法规解读：跟进最新法规政策变化，撰写内部合规指引' },
+      { time:'19:00', desc:'学术研究：撰写法律评论文章或政策研究报告' }
+    ],
+    decisions: [
+      { q:'客户的诉求合法但不合理（利用法律漏洞），你如何建议？', opts:['依法维护客户权益','建议客户考虑道德和社会影响','拒绝代理该业务'], res:['律师职业义务所在，但可能损害声誉。','最佳平衡——法律+道德的复合建议。','个人道德标准高但可能超出职业要求。'] },
+      { q:'你发现对方律师引用的判例存在误导性解读。', opts:['当庭指出并纠正','庭后提交补充意见','策略性利用对方漏洞'], res:['直接有效，展示专业能力。','稳妥但延误时机。','有违法律职业伦理，不推荐。'] }
+    ]
+  },
+  // === 供应链轨道 ===
+  logistics: {
+    id:'logistics', icon:'📦', name:'供应链管理', color:'#6366F1', bg:'rgba(99,102,241,0.08)',
+    tag:'适合：统筹能力强、关注效率、喜欢优化流程的人',
+    desc:'从采购到配送，让每件商品高效抵达用户手中',
+    timeBlocks: [
+      { time:'08:00', desc:'需求预测：分析销售数据和季节性趋势，制定补货计划' },
+      { time:'10:00', desc:'库存管理：监控各仓库存水位，处理异常库存预警' },
+      { time:'13:00', desc:'供应商对接：与供应商沟通交期、质量和合同条款' },
+      { time:'15:00', desc:'物流调度：协调运力资源，优化配送路线和成本' },
+      { time:'17:00', desc:'成本分析：核算物流成本，寻找降本增效机会' },
+      { time:'19:00', desc:'流程优化：复盘当日异常订单，更新SOP和应急预案' }
+    ],
+    decisions: [
+      { q:'双11大促，核心仓库突然爆仓。你的第一反应？', opts:['启用备用仓分流','紧急追加临时仓储','优先发高价值订单'], res:['预案充分——最佳应急响应。','临时方案成本高且可能来不及。','实用但可能损害用户体验一致性。'] },
+      { q:'海外供应商因港口罢工导致关键原材料断供。', opts:['紧急切换备用供应商','与客户协商延期交付','空运高价补货部分需求'], res:['供应商多元化是最佳事前策略。','诚实沟通很重要但不是根本解决方案。','组合方案——空运保核心+切换备供+客户沟通。'] }
+    ]
+  }
+};
+
+const allModeIds = [
+  'tech','data','product','finance','marketing','consulting',
+  'medical_clinical','medical_research','public_health','health_management',
+  'education','education_tech',
+  'media_content','media_brand',
+  'design_ux','design_visual',
+  'engineering','biotech','law_policy','logistics'
+];
+
+let viewedModes = [];    // modes the user has deep-dived
+let currentDeepDive = null;  // which mode is currently being viewed
+let selectedModeId = null;   // final selection
+
+// Personalized mode ranking based on user profile
+function getPersonalizedModes() {
+  const scores = {};
+  allModeIds.forEach(id => { scores[id] = 0; });
+  
+  const major = profileData.major;
+  const allSkills = [...profileData.techSkills, ...profileData.customSkills];
+  const interests = profileData.interest || '';
+  const wmPref = profileData.workModePref || '';
+  
+  // === Major → Mode relevance (0-3 points) ===
+  const majorModeScore = {
+    '计算机/IT': {tech:3, data:2, product:2, design_ux:1, education_tech:1},
+    '金融/经管': {finance:3, consulting:2, data:2, law_policy:1, logistics:1},
+    '人文社科': {education:3, media_content:2, media_brand:2, consulting:2, law_policy:2},
+    '理工科': {tech:2, engineering:3, data:2, biotech:1, logistics:1},
+    '医学': {medical_clinical:3, medical_research:3, public_health:2, health_management:2, biotech:2},
+    '艺术设计': {design_ux:3, design_visual:3, media_content:2, product:2, media_brand:2},
+  };
+  if (major && majorModeScore[major]) {
+    for (const [mode, pts] of Object.entries(majorModeScore[major])) {
+      scores[mode] = (scores[mode] || 0) + pts;
+    }
+  }
+  
+  // === Skill → Mode match (0-2 points per skill) ===
+  const skillModeMap = {
+    tech: ['Python','Java','Go','C++','JavaScript','TypeScript','Rust','Docker','Kubernetes','Git','开发','编程','架构','算法','后端','前端','系统设计'],
+    data: ['SQL','R','SPSS','Tableau','Power BI','Excel','数据分析','数据挖掘','数据可视化','统计','清洗','ETL','建模'],
+    product: ['产品设计','需求分析','用户研究','Figma','Sketch','原型','交互','PRD','项目管理'],
+    finance: ['金融分析','财务分析','估值建模','量化分析','投资分析','证券','基金','风控','会计','Excel'],
+    marketing: ['市场营销','内容营销','社交媒体','活动策划','增长策略','SEO','SEM','品牌','运营','推广'],
+    consulting: ['咨询','PPT','战略','分析','演讲','沟通','商业','逻辑','结构化'],
+    medical_clinical: ['临床','诊断','手术','内科','外科','妇产科','儿科','急救','查房','病历','处方'],
+    medical_research: ['实验','细胞','分子','PCR','Western','ELISA','动物模型','论文','文献','统计','SPSS','R'],
+    public_health: ['流行病','卫生统计','GIS','政策','预防','疾控','健康教育'],
+    health_management: ['体检','健康','营养','随访','慢病','可穿戴','健康管理'],
+    education: ['教学','课程','培训','辅导','授课','班级管理','教育','教务'],
+    education_tech: ['教育技术','自适应','LMS','MOOC','在线教育','AI教育','知识图谱','个性化学习'],
+    media_content: ['内容创作','写作','短视频','视频制作','编辑','选题','文案','PR','AE','脚本'],
+    media_brand: ['品牌','传播','PR','公关','策划','创意','营销','媒介','舆情'],
+    design_ux: ['Figma','Sketch','UX','UI','交互','原型','用户研究','可用性','信息架构'],
+    design_visual: ['视觉','设计','PS','AI','动效','品牌设计','排版','色彩','C4D','插画'],
+    engineering: ['AutoCAD','SolidWorks','制造','工艺','测试','质量','模具','PLC','电路'],
+    biotech: ['药物','药理','毒理','化药','生物药','临床试验','注册','IND','NDA','免疫','肿瘤'],
+    law_policy: ['法律','法务','合规','合同','诉讼','仲裁','法规','政策','知识产权'],
+    logistics: ['供应链','物流','仓储','采购','库存','ERP','运输','快递','配送','成本']
+  };
+  
+  allSkills.forEach(s => {
+    for (const [mode, keywords] of Object.entries(skillModeMap)) {
+      if (keywords.some(k => s === k || (k.length > 1 && s.includes(k)) || k.includes(s))) {
+        scores[mode] = (scores[mode] || 0) + 2;
+      }
+    }
+  });
+  
+  // === Interest → Mode match (0-2 points per keyword) ===
+  const interestModeMap = {
+    tech: ['技术研发','技术','研发','编程','软件','人工智能','AI','机器人'],
+    data: ['数据分析','数据','大数据','统计','BI'],
+    product: ['产品设计','产品','设计'],
+    finance: ['金融投资','金融','投资','理财','证券','基金','银行'],
+    marketing: ['市场运营','市场','运营','营销','电商','短视频','自媒体'],
+    consulting: ['咨询顾问','咨询','顾问','战略','管理'],
+    medical_clinical: ['医疗健康','医疗','医生','临床','医院','患者'],
+    medical_research: ['医学研究','科研','实验','学术','研究','论文'],
+    public_health: ['公共卫生','疾控','预防','流行病','卫生'],
+    health_management: ['健康','营养','保健','体检','养生','康复'],
+    education: ['教育培训','教育','教学','培训','学生','辅导','育儿'],
+    education_tech: ['教育科技','在线教育','AI教育','学习','知识付费'],
+    media_content: ['文化传媒','内容创作','创作','写作','视频','新媒体','写稿','自媒体'],
+    media_brand: ['品牌','传播','公关','营销','广告','传媒'],
+    design_ux: ['设计','UX','交互','用户','体验'],
+    design_visual: ['视觉','美术','创意','设计','美学','插画','动画'],
+    engineering: ['制造','工业','硬件','工程','机器人','汽车','航天','生产'],
+    biotech: ['生物','制药','医药','研发','实验'],
+    law_policy: ['法律合规','法律','政策','政府','合规','法务','NGO','公益'],
+    logistics: ['供应链','物流','采购','仓储','快递','零售']
+  };
+  
+  for (const [mode, keywords] of Object.entries(interestModeMap)) {
+    if (keywords.some(k => interests.includes(k))) {
+      scores[mode] = (scores[mode] || 0) + 2;
+    }
+  }
+  
+  // === Work Mode Preference → Mode match (0-1 point) ===
+  const wmModeMap = {
+    tech: ['独立完成任务','深度研究学习'],
+    data: ['独立完成任务','深度研究学习'],
+    product: ['团队协作推进','跨国文化协作'],
+    finance: ['独立完成任务','管理统筹规划'],
+    marketing: ['团队协作推进','创业自由探索'],
+    consulting: ['客户对接沟通','管理统筹规划'],
+    medical_clinical: ['团队协作推进','客户对接沟通'],
+    medical_research: ['深度研究学习','独立完成任务'],
+    public_health: ['管理统筹规划','跨国文化协作'],
+    health_management: ['客户对接沟通','远程灵活办公'],
+    education: ['团队协作推进','客户对接沟通'],
+    education_tech: ['深度研究学习','创业自由探索'],
+    media_content: ['创业自由探索','独立完成任务'],
+    media_brand: ['团队协作推进','创业自由探索'],
+    design_ux: ['深度研究学习','团队协作推进'],
+    design_visual: ['独立完成任务','创业自由探索'],
+    engineering: ['深度研究学习','独立完成任务'],
+    biotech: ['深度研究学习','团队协作推进'],
+    law_policy: ['管理统筹规划','深度研究学习'],
+    logistics: ['管理统筹规划','独立完成任务']
+  };
+  
+  for (const [mode, keywords] of Object.entries(wmModeMap)) {
+    if (keywords.some(k => wmPref.includes(k))) {
+      scores[mode] = (scores[mode] || 0) + 1;
+    }
+  }
+  
+  // Sort by score descending, then alphabetically for ties
+  const ranked = allModeIds.slice().sort((a, b) => {
+    const diff = (scores[b] || 0) - (scores[a] || 0);
+    return diff !== 0 ? diff : a.localeCompare(b);
+  });
+  
+  return { ranked, scores };
+}
+
+// Screen 6 init — ROBUST VERSION with error handling and debug markers
+function initModeGallery() {
+  try {
+    console.log("[DEBUG] initModeGallery called, profileData.major=" + (profileData.major || "(empty)"));
+    
+    // Show version timestamp
+    var ts = document.getElementById("versionTs");
+    if (ts) ts.textContent = new Date().toLocaleString();
+    
+    // Show detected profile banner
+    var det = document.getElementById("profileDetected");
+    var majorTag = document.getElementById("profileMajorTag");
+    var interestTag = document.getElementById("profileInterestTag");
+    if (det && majorTag && interestTag) {
+      det.style.display = "block";
+      majorTag.innerHTML = profileData.major 
+        ? "\u{1f393} 检测专业：<b style=\"color:var(--primary-dark)\">" + profileData.major + "</b>  "
+        : "\u26a0\ufe0f 未检测到专业选择  ";
+      interestTag.innerHTML = profileData.interest 
+        ? "\u2764\ufe0f 兴趣偏好：<b style=\"color:var(--primary-dark)\">" + profileData.interest + "</b>"
+        : "\u26a0\ufe0f 未检测到兴趣偏好";
+    }
+    
+    // Compute personalized modes
+    var result;
+    try {
+      result = getPersonalizedModes();
+      console.log("[DEBUG] getPersonalizedModes returned top:", result.ranked.slice(0, 6).join(","));
+    } catch(err) {
+      console.error("[ERROR] getPersonalizedModes failed:", err.message);
+      // Fallback: treat as no profile data
+      result = { ranked: allModeIds.slice(), scores: {} };
+    }
+    
+    var ranked = result.ranked;
+    var scores = result.scores;
+    var personalized = ranked.slice(0, 6);
+    var expanded = ranked.slice(6);
+    
+    // Update AI bubble
+    var aiBubble = document.getElementById("aiBubble6");
+    if (aiBubble) {
+      var major = profileData.major;
+      if (major) {
+        aiBubble.innerHTML = "<p>根据你的<b style=\"color:var(--primary-dark)\">" + major + "</b>背景，我为你精选了<b>" + personalized.length + "种最匹配的工作方式</b>。点击任意一个，沉浸式体验一天的工作日常。</p>";
+      } else {
+        aiBubble.innerHTML = "<p>\u26a0\ufe0f <b>尚未检测到你的专业背景</b>。以下是全部20种工作方式，建议返回第2步选择专业以获得个性化推荐。</p>";
+      }
+    }
+    
+    var gallery = document.getElementById("modeGallery");
+    if (!gallery) { console.warn("[WARN] modeGallery not found"); return; }
+    
+    var html = "<div style=\"margin-bottom:8px;font-size:13px;color:var(--primary-light);font-weight:600;text-align:center\">\ud83d\udc47 为你推荐（基于" + (profileData.major || "默认") + "方向）</div>";
+    
+    for (var i = 0; i < personalized.length; i++) {
+      var mid = personalized[i];
+      var m = workModes[mid];
+      if (!m) { console.warn("[WARN] No workMode for id:", mid); continue; }
+      var star = i === 0 ? "\u2b50" : "";
+      html += "<div class=\"scenario-card card-stroke\" onclick=\"startDeepDiveSmart('" + mid + "')\" style=\"margin-bottom:0;cursor:pointer\">";
+      html += "<div class=\"scenario-header\">";
+      html += "<div class=\"scenario-icon\" style=\"background:" + m.bg + "\">" + m.icon + "</div>";
+      html += "<span class=\"scenario-title\" style=\"font-size:15px\">" + m.name + " " + star + "</span>";
+      html += "</div>";
+      html += "<p style=\"font-size:12px;color:var(--gray);margin:0 0 8px\">" + m.desc + "</p>";
+      html += "<div class=\"scenario-tag\" style=\"background:" + m.bg + ";color:" + m.color + "\">" + m.tag + "</div>";
+      html += "</div>";
+    }
+    
+    // Expandable "view all"
+    if (expanded.length > 0) {
+      html += "<div onclick=\"toggleAllModes()\" id=\"showAllBtn\" style=\"text-align:center;padding:12px;color:var(--primary-light);font-size:13px;cursor:pointer;border:1px dashed var(--primary-light);border-radius:12px;margin-top:4px\">\ud83d\udccb 查看全部" + allModeIds.length + "种工作方式（含" + expanded.length + "种更多选择）</div>";
+      html += "<div id=\"allModesExtra\" style=\"display:none;margin-top:8px\">";
+      for (var j = 0; j < expanded.length; j++) {
+        var mid2 = expanded[j];
+        var m2 = workModes[mid2];
+        if (!m2) continue;
+        html += "<div class=\"scenario-card card-stroke\" onclick=\"startDeepDiveSmart('" + mid2 + "')\" style=\"margin-bottom:10px;cursor:pointer;opacity:0.8\">";
+        html += "<div class=\"scenario-header\">";
+        html += "<div class=\"scenario-icon\" style=\"background:" + m2.bg + "\">" + m2.icon + "</div>";
+        html += "<span class=\"scenario-title\" style=\"font-size:14px\">" + m2.name + "</span>";
+        html += "</div>";
+        html += "<p style=\"font-size:11px;color:var(--gray);margin:0 0 6px\">" + m2.desc + "</p>";
+        html += "<div class=\"scenario-tag\" style=\"background:" + m2.bg + ";color:" + m2.color + "\">" + m2.tag + "</div>";
+        html += "</div>";
+      }
+      html += "</div>";
+    }
+    
+    gallery.innerHTML = html;
+    console.log("[DEBUG] initModeGallery complete, gallery has", personalized.length, "personalized modes");
+    
+  } catch(err) {
+    console.error("[FATAL] initModeGallery crashed:", err.message, err.stack);
+    // Emergency fallback
+    var gallery = document.getElementById("modeGallery");
+    if (gallery) {
+      gallery.innerHTML = "<div style=\"padding:20px;text-align:center;color:var(--gray)\">\u26a0\ufe0f 加载个性化推荐时出错，请返回上一步重新选择。</div>";
+    }
+  }
+}
+
+// Toggle "view all" expanded modes
+function toggleAllModes() {
+  const extra = document.getElementById('allModesExtra');
+  const btn = document.getElementById('showAllBtn');
+  if (!extra || !btn) return;
+  const isVisible = extra.style.display !== 'none';
+  extra.style.display = isVisible ? 'none' : 'block';
+  btn.textContent = isVisible 
+    ? `📋 查看全部${allModeIds.length}种工作方式（含${allModeIds.length - 6}种更多选择）`
+    : '📋 收起更多选择';
+}
+
+// Smart routing: first mode → Screen 7, second → Screen 8, subsequent → overwrite Screen 7
+function startDeepDiveSmart(modeId) {
+  const simA = document.getElementById('simContentA');
+  const simB = document.getElementById('simContentB');
+  
+  if (!simA || !simA.innerHTML.trim()) {
+    // Slot A (Screen 7) is empty → use it
+    startDeepDive(modeId, 7);
+  } else if (!simB || !simB.innerHTML.trim()) {
+    // Slot B (Screen 8) is empty → use it for second mode
+    startDeepDive(modeId, 8);
+  } else {
+    // Both slots full → overwrite slot A and go to Screen 7
+    startDeepDive(modeId, 7);
+  }
+}
+
+// Start deep dive experience on screen 7 or 8
+function startDeepDive(modeId, targetScreen) {
+  const m = workModes[modeId];
+  if (!m) return;
+  
+  currentDeepDive = modeId;
+  
+  // Track viewed modes
+  if (!viewedModes.includes(modeId)) viewedModes.push(modeId);
+  if (viewedModes.length > 2) viewedModes = viewedModes.slice(-2);
+  
+  // Build deep-dive content
+  const screenNum = (targetScreen === 7) ? 'A' : 'B';
+  const titleEl = document.getElementById('simTitle' + screenNum);
+  const contentEl = document.getElementById('simContent' + screenNum);
+  
+  if (titleEl) titleEl.textContent = m.icon + ' ' + m.name + '的一天';
+  
+  if (contentEl) {
+    let html = '';
+    
+    // AI intro
+    html += `<div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>欢迎来到<b>${m.name}</b>的工作世界！下面是真实的一天时间线。阅读完后，我会问你几个<b>真实的职场决策题</b>——你的选择会告诉我们你是否适合这个岗位。</p></div></div>`;
+    
+    // Time blocks card
+    html += `<div class="card" style="background:${m.bg};border:1.5px solid ${m.color}20">`;
+    html += `<h3 style="font-size:16px;color:${m.color};margin-bottom:12px;display:flex;align-items:center;gap:8px">${m.icon} ${m.name}的真实一天</h3>`;
+    m.timeBlocks.forEach((tb, i) => {
+      html += `<div class="time-block" style="animation:fadeInUp 0.3s ${0.1*i}s both">
+        <span class="time-stamp">${tb.time}</span>
+        <span class="time-desc">${tb.desc}</span>
+      </div>`;
+    });
+    html += `</div>`;
+    
+    // Decision section
+    html += `<div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>现在是<b>决策时间</b>——想象你就是一位${m.name}，面对以下真实情境，你会怎么选？</p></div></div>`;
+    
+    // Decision cards
+    m.decisions.forEach((dec, j) => {
+      const did = 'dec' + screenNum + j;
+      html += `<div class="card card-stroke" style="margin-bottom:10px" id="${did}">
+        <h4 style="font-size:13px;color:var(--primary);margin-bottom:8px">💬 ${dec.q}</h4>
+        <div class="chip-row" style="margin-bottom:6px">`;
+      dec.opts.forEach((opt, k) => {
+        html += `<span class="chip" onclick="makeDecision('${screenNum}',${j},${k})">${opt}</span>`;
+      });
+      html += `</div>
+        <div id="decResp${screenNum}${j}" style="display:none;padding:8px 10px;background:rgba(22,163,74,0.05);border-radius:8px;font-size:12px;color:var(--green);margin-top:4px"></div>
+      </div>`;
+    });
+    
+    // Action buttons
+    html += `<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">`;
+    html += `<button class="btn btn-secondary" onclick="goScreen(6)" style="font-size:12px;flex:1;min-width:80px">← 场景库<span style="font-size:10px;display:block;font-weight:400;opacity:0.7">（可跳转至前一页选择体验其他工作模式）</span></button>`;
+    if (targetScreen === 7) {
+      // Screen 7: only gallery back — user goes back to pick another mode freely
+    } else {
+      // Screen 8: both gallery back and comparison
+      html += `<button class="btn" onclick="goScreen(9)" style="font-size:12px;flex:1;min-width:80px">去对比选择 →</button>`;
+    }
+    html += `</div>`;
+    html += `<button class="btn btn-outline" onclick="pickMode('${screenNum}')" style="font-size:13px;border:2px solid var(--green);color:var(--green);margin-bottom:16px">🎯 就是它了！选这个方向</button>`;
+    
+    contentEl.innerHTML = html;
+    contentEl.scrollTop = 0;
+  }
+  
+  goScreen(targetScreen);
+}
+
+// Handle decision making
+function makeDecision(screenId, decIdx, optIdx) {
+  const m = workModes[currentDeepDive];
+  if (!m || !m.decisions[decIdx]) return;
+  
+  const respEl = document.getElementById('decResp' + screenId + decIdx);
+  if (!respEl) return;
+  
+  // Highlight the selected chip
+  const cardEl = document.getElementById('dec' + screenId + decIdx);
+  if (cardEl) {
+    cardEl.querySelectorAll('.chip').forEach((c, i) => {
+      c.classList.remove('selected');
+      if (i === optIdx) c.classList.add('selected');
+      c.style.pointerEvents = 'none';
+    });
+  }
+  
+  respEl.textContent = '✓ ' + m.decisions[decIdx].res[optIdx];
+  respEl.style.display = 'block';
+}
+
+// Pick a mode (from comparison screen or deep dive)
+function pickMode(screenId) {
+  let modeId;
+  let fromDeepDive = false;
+  if (screenId === 'A' || screenId === 'B') {
+    modeId = currentDeepDive;
+    fromDeepDive = true;
+  } else {
+    // clicked on comparison card on screen 9
+    modeId = (screenId === 'compCardA') ? viewedModes[0] : viewedModes[1];
+    if (!modeId || !workModes[modeId]) return;
+  }
+  
+  const m = workModes[modeId];
+  if (!m) return;
+  
+  selectedModeId = modeId;
+  
+  if (fromDeepDive) {
+    // Will navigate to screen 9 where initComparison shows the selection
+    setTimeout(() => goScreen(9), 400);
+  } else {
+    // Already on screen 9, update UI directly
+    const detail = document.getElementById('compareDetail');
+    const confirmBtn = document.getElementById('compareConfirmBtn');
+    const card = document.getElementById('selectedModeCard');
+    const cardA = document.getElementById('compCardA');
+    const cardB = document.getElementById('compCardB');
+    
+    if (detail) detail.style.display = 'block';
+    if (confirmBtn) confirmBtn.style.display = 'block';
+    if (card) {
+      card.innerHTML = `
+        <div class="scenario-header">
+          <div class="scenario-icon" style="background:${m.bg}">${m.icon}</div>
+          <span class="scenario-title" style="color:${m.color}">${m.name}</span>
+        </div>
+        <p style="font-size:13px;color:var(--gray);margin:8px 0">${m.tag}</p>
+        <p style="font-size:13px;color:var(--primary-light)">${m.desc}</p>`;
+    }
+    if (cardA && cardB) {
+      cardA.classList.remove('selected');
+      cardB.classList.remove('selected');
+      if (screenId === 'compCardA') cardA.classList.add('selected');
+      if (screenId === 'compCardB') cardB.classList.add('selected');
+    }
+  }
+  
+  showToast('已选择：' + m.name);
+}
+
+// Confirm final mode selection
+function confirmModeSelection() {
+  if (!selectedModeId) return;
+  const m = workModes[selectedModeId];
+  profileData.workModeName = m.name;
+  showToast('偏好已确认：' + m.name + ' 🎯');
+  setTimeout(() => goScreen(10), 400);
+}
+
+// Initialize comparison screen
+function initComparison() {
+  // Fill comparison cards with viewed modes
+  const v0 = viewedModes[0] ? workModes[viewedModes[0]] : null;
+  const v1 = viewedModes[1] ? workModes[viewedModes[1]] : null;
+  
+  if (v0) {
+    document.getElementById('compIconA').textContent = v0.icon;
+    document.getElementById('compTitleA').textContent = v0.name;
+    document.getElementById('compDescA').textContent = v0.tag;
+  } else {
+    document.getElementById('compIconA').textContent = '📋';
+    document.getElementById('compTitleA').textContent = '未体验';
+    document.getElementById('compDescA').textContent = '请先体验场景';
+  }
+  if (v1) {
+    document.getElementById('compIconB').textContent = v1.icon;
+    document.getElementById('compTitleB').textContent = v1.name;
+    document.getElementById('compDescB').textContent = v1.tag;
+  } else {
+    document.getElementById('compIconB').textContent = '📋';
+    document.getElementById('compTitleB').textContent = '未体验';
+    document.getElementById('compDescB').textContent = '请先体验场景';
+  }
+  
+  // Show quick-pick grid if no modes viewed
+  const quickPick = document.getElementById('quickPickGrid');
+  if (quickPick && viewedModes.length === 0) {
+    let quickHtml = '<h4 style="font-size:13px;color:var(--gray);margin-bottom:8px">或者直接从以下选择：</h4><div class="chip-row">';
+    const { ranked: quickModes } = getPersonalizedModes();
+    quickModes.slice(0, 8).forEach(mid => {
+      const m = workModes[mid];
+      quickHtml += `<span class="chip" onclick="selectedModeId='${mid}';pickModeDirect('${mid}')">${m.icon} ${m.name}</span>`;
+    });
+    quickHtml += '</div>';
+    quickPick.innerHTML = quickHtml;
+    quickPick.style.display = 'block';
+  } else if (quickPick) {
+    quickPick.style.display = 'none';
+  }
+  
+  // If a mode was already selected (from deep dive), show it
+  if (selectedModeId) {
+    const m = workModes[selectedModeId];
+    const detail = document.getElementById('compareDetail');
+    const confirmBtn = document.getElementById('compareConfirmBtn');
+    const card = document.getElementById('selectedModeCard');
+    if (detail) detail.style.display = 'block';
+    if (confirmBtn) confirmBtn.style.display = 'block';
+    if (card && m) {
+      card.innerHTML = `
+        <div class="scenario-header">
+          <div class="scenario-icon" style="background:${m.bg}">${m.icon}</div>
+          <span class="scenario-title" style="color:${m.color}">${m.name}</span>
+        </div>
+        <p style="font-size:13px;color:var(--gray);margin:8px 0">${m.tag}</p>
+        <p style="font-size:13px;color:var(--primary-light)">${m.desc}</p>`;
+    }
+    // Highlight comparison card
+    const cardA = document.getElementById('compCardA');
+    const cardB = document.getElementById('compCardB');
+    if (cardA && cardB) {
+      cardA.classList.remove('selected');
+      cardB.classList.remove('selected');
+      if (viewedModes[0] === selectedModeId) cardA.classList.add('selected');
+      if (viewedModes[1] === selectedModeId) cardB.classList.add('selected');
+    }
+  } else {
+    // Reset selection state (normal navigation from screen 8)
+    document.getElementById('compareDetail').style.display = 'none';
+    document.getElementById('compareConfirmBtn').style.display = 'none';
+    document.getElementById('compCardA').classList.remove('selected');
+    document.getElementById('compCardB').classList.remove('selected');
+  }
+}
+
+// Quick pick from grid (no experience)
+function pickModeDirect(mid) {
+  selectedModeId = mid;
+  const m = workModes[mid];
+  if (!m) return;
+  const detail = document.getElementById('compareDetail');
+  const confirmBtn = document.getElementById('compareConfirmBtn');
+  const card = document.getElementById('selectedModeCard');
+  if (detail) detail.style.display = 'block';
+  if (confirmBtn) confirmBtn.style.display = 'block';
+  if (card) {
+    card.innerHTML = `
+      <div class="scenario-header">
+        <div class="scenario-icon" style="background:${m.bg}">${m.icon}</div>
+        <span class="scenario-title" style="color:${m.color}">${m.name}</span>
+      </div>
+      <p style="font-size:13px;color:var(--gray);margin:8px 0">${m.tag}</p>
+      <p style="font-size:13px;color:var(--primary-light)">${m.desc}</p>`;
+  }
+  showToast('已选择：' + m.name);
+}
+
+// ===== GENERATE CAREER PROFILE (Screen 10) =====
+function generateProfile() {
+  // Re-collect all data from DOM in case user changed anything
+  // Screen 2 - Education & Major
+  const s2Chips = document.querySelector('[data-screen="2"]');
+  if (s2Chips) {
+    const selChips = s2Chips.querySelectorAll('.chip.selected');
+    selChips.forEach(c => {
+      const txt = c.textContent;
+      if (['本科','硕士','博士','专科'].includes(txt)) profileData.education = txt;
+      if (['计算机/IT','金融/经管','人文社科','理工科','医学','艺术设计'].includes(txt)) profileData.major = txt;
+    });
+  }
+
+  // Screen 3 - Tech & Soft Skills
+  profileData.techSkills = [];
+  profileData.softSkills = [];
+  profileData.customSkills = [];  // reset for fresh collection
+  document.querySelectorAll('#techChips .chip.selected').forEach(c => profileData.techSkills.push(c.textContent));
+  document.querySelectorAll('#toolChips .chip.selected').forEach(c => profileData.techSkills.push(c.textContent));
+  document.querySelectorAll('#softChips .chip.selected').forEach(c => profileData.softSkills.push(c.textContent));
+  // Also collect custom skills from the DOM
+  const customSkillChips = document.querySelectorAll('#customSkillsRow .chip');
+  customSkillChips.forEach(c => {
+    const txt = c.textContent;
+    if (txt && !profileData.customSkills.includes(txt)) profileData.customSkills.push(txt);
+  });
+
+  // Screen 4 - Experience
+  const s4Chips = document.querySelector('[data-screen="4"]');
+  if (s4Chips) {
+    const expChips = s4Chips.querySelectorAll('.chip.selected');
+    expChips.forEach(c => {
+      const txt = c.textContent;
+      if (['有实习经验','有项目经验','科研经历','竞赛获奖','暂无经验'].includes(txt)) profileData.experience = txt;
+      if (['< 3个月','3-6个月','6-12个月','> 1年'].includes(txt)) profileData.expDuration = txt;
+    });
+    // Also check expFollow area
+    const expFollow = document.getElementById('expFollow');
+    if (expFollow) {
+      expFollow.querySelectorAll('.chip.selected').forEach(c => {
+        if (!profileData.expDuration) profileData.expDuration = c.textContent;
+      });
+    }
+  }
+
+  // Screen 5 - Interest & Work mode preference
+  const s5Chips = document.querySelector('[data-screen="5"]');
+  if (s5Chips) {
+    const allSel = s5Chips.querySelectorAll('.chip.selected');
+    let interests = [];
+    let modes = [];
+    allSel.forEach(c => {
+      const txt = c.textContent;
+      if (['技术研发','数据分析','产品设计','金融投资','市场运营','咨询顾问','人工智能','教育培训','医疗健康','文化传媒','供应链/物流','法律合规','人力资源','政府/NGO'].includes(txt)) interests.push(txt);
+      if (['独立完成任务','团队协作推进','管理统筹规划','客户对接沟通','远程灵活办公','跨国文化协作','创业自由探索','深度研究学习'].includes(txt)) modes.push(txt);
+    });
+    if (interests.length > 0) profileData.interest = interests.join('、');
+    if (modes.length > 0) profileData.workModePref = modes.join('、');
+  }
+  // Custom interests from DOM
+  profileData.customInterests = [];  // reset for fresh collection
+  const customIntChips = document.querySelectorAll('#customInterestsRow .chip');
+  const customInts = [];
+  customIntChips.forEach(c => {
+    const txt = c.textContent;
+    if (txt && !profileData.customInterests.includes(txt)) profileData.customInterests.push(txt);
+  });
+
+  // Screen 9 - selected scenario card
+  const s9Selected = document.querySelector('[data-screen="9"] .scenario-card.selected');
+  if (s9Selected) {
+    const title = s9Selected.querySelector('.scenario-title');
+    if (title) profileData.workModeName = title.textContent;
+  }
+
+  // Fill the profile card
+  const edu = profileData.education || '未选择';
+  const major = profileData.major || '未选择';
+  document.getElementById('profile-edu').textContent = edu + (major !== '未选择' ? ' · ' + major : '');
+
+  let tech = profileData.techSkills.length > 0 ? profileData.techSkills.join('、') : '未选择';
+  // Append custom skills if any
+  if (profileData.customSkills.length > 0) {
+    tech += (tech !== '未选择' ? '；' : '') + '【自定义】' + profileData.customSkills.join('、');
+  }
+  document.getElementById('profile-tech').textContent = tech;
+
+  const soft = profileData.softSkills.length > 0 ? profileData.softSkills.join('、') : '未选择';
+  document.getElementById('profile-soft').textContent = soft;
+
+  const exp = profileData.experience || '未选择';
+  const dur = profileData.expDuration || '';
+  document.getElementById('profile-exp').textContent = exp + (dur ? '（' + dur + '）' : '');
+
+  let interest = profileData.interest || '未选择';
+  if (profileData.customInterests.length > 0) {
+    interest += (interest !== '未选择' ? '；' : '') + '【自定义】' + profileData.customInterests.join('、');
+  }
+  document.getElementById('profile-interest').textContent = interest;
+
+  const mode = profileData.workModeName || profileData.workModePref || '未选择';
+  document.getElementById('profile-mode').textContent = mode;
+}
+
+// ===== RE-EXPLORATION (Screen 11) =====
+function reExploreInit() {
+  document.getElementById('reexploreResponse').style.display = 'none';
+}
+
+function reExplore(chip, reason) {
+  chip.classList.add('selected');
+  const bubble = document.getElementById('reexploreBubble');
+  const chipArea = document.getElementById('reexploreChips');
+
+  const responses = {
+    '专业方向不准确': {
+      text: '明白了！告诉我你实际的<b>专业方向</b>是？',
+      chips: ['计算机/IT', '金融/经管', '理工科', '人文社科', '医学', '艺术设计', '其他']
+    },
+    '技能描述不完整': {
+      text: '了解！你希望补充哪些<b>技能</b>？',
+      chips: ['机器学习', '深度学习', '云计算', '区块链', '外语', '写作', '设计', '演讲']
+    },
+    '兴趣方向想调整': {
+      text: '没问题！你更感兴趣的<b>方向</b>是？',
+      chips: ['技术研发', '金融分析', '产品管理', '市场运营', '咨询', '创业', '学术研究']
+    },
+    '工作方式不喜欢': {
+      text: '那你更喜欢哪种<b>工作方式</b>？',
+      chips: ['自由灵活', '结构化流程', '快节奏挑战', '稳定规律', '跨国协作']
+    },
+    '想看看其他可能': {
+      text: '好的！让我推荐一些<b>你可能没考虑过的方向</b>。你也可以告诉我感兴趣的领域：',
+      chips: ['量化金融', '商业分析', 'AI产品', '风险管理', '数据科学', '战略咨询']
+    }
+  };
+
+  const r = responses[reason] || responses['想看看其他可能'];
+  bubble.innerHTML = `<p>${r.text}</p>`;
+  chipArea.innerHTML = r.chips.map(c => `<span class="chip" onclick="selectChip(this)">${c}</span>`).join('');
+  document.getElementById('reexploreResponse').style.display = 'block';
+}
+
+// ===== INTELLIGENT JOB MATCHING ENGINE V3 =====
+// Completely rebuilt with intelligent track detection and precise matching
+let selectedJobId = null;
+let selectedJobData = null;
+
+// Expanded job database: 32 real positions across 8 tracks
+// Each job now includes matchReasons for transparent scoring explanation
+const jobDatabase = [
+  // ==================== 技术研发 track ====================
+  { id:'t01', track:'tech', logo:'腾', logoColor:'#C2410C', logoBg:'rgba(234,88,12,0.1)',
+    title:'后端开发工程师', company:'腾讯', salary:'¥25K-45K·16薪', location:'深圳·南山',
+    url:'https://careers.tencent.com/', desc:'负责腾讯云核心业务系统的架构设计与开发优化，参与高并发分布式系统技术方案设计，推动系统性能持续提升。',
+    reqs:['本科及以上，计算机相关专业','精通Java/Go/C++至少一门','熟悉分布式系统、微服务架构','有高性能高可用系统设计经验优先'],
+    tags:['Java','Go','分布式','微服务','系统架构'],
+    targetSkills:['Java','Go','C++','Python','后端开发','分布式','微服务','系统架构','数据库','Linux'],
+    targetSofts:['逻辑思维','团队协作','问题解决','快速学习'],
+    targetMajors:['计算机/IT','理工科'],
+    targetInterests:['技术研发','编程开发','软件工程','后端','系统设计'] },
+  { id:'t02', track:'tech', logo:'字', logoColor:'#D97706', logoBg:'rgba(245,158,11,0.1)',
+    title:'前端开发工程师', company:'字节跳动', salary:'¥22K-40K·15薪', location:'北京·海淀',
+    url:'https://job.bytedance.com/', desc:'负责抖音系产品前端架构与开发，参与跨平台方案设计和性能优化，推动前端工程化建设。',
+    reqs:['本科及以上，计算机相关专业','精通JavaScript/TypeScript，熟悉React/Vue','有移动端H5/小程序开发经验','了解前端性能优化和工程化'],
+    tags:['TypeScript','React','Vue','小程序','前端性能'],
+    targetSkills:['JavaScript','TypeScript','React','Vue','前端开发','CSS','HTML','小程序','Node.js'],
+    targetSofts:['创造力','逻辑思维','沟通表达','团队协作'],
+    targetMajors:['计算机/IT','理工科'],
+    targetInterests:['技术研发','前端开发','用户体验','UI','全栈'] },
+  { id:'t03', track:'tech', logo:'华', logoColor:'#0369A1', logoBg:'rgba(2,132,199,0.1)',
+    title:'AI算法工程师', company:'华为', salary:'¥30K-60K·14薪', location:'深圳·龙岗',
+    url:'https://career.huawei.com/', desc:'负责大语言模型训练与推理优化，参与多模态AI系统研发，推动AI技术在华为全场景设备中落地。',
+    reqs:['硕士及以上，CS/AI/数学相关','精通PyTorch/TensorFlow','有大模型训练/微调经验者优先','顶会论文发表经历优先'],
+    tags:['PyTorch','深度学习','NLP','大模型','Transformer'],
+    targetSkills:['Python','PyTorch','TensorFlow','机器学习','深度学习','AI','人工智能','算法','NLP','CUDA'],
+    targetSofts:['快速学习','创造力','逻辑思维','抗压能力'],
+    targetMajors:['计算机/IT','理工科'],
+    targetInterests:['人工智能','机器学习','深度学习','NLP','计算机视觉','大模型'] },
+  { id:'t04', track:'tech', logo:'阿', logoColor:'#7C3AED', logoBg:'rgba(139,92,246,0.1)',
+    title:'测试开发工程师', company:'阿里巴巴', salary:'¥20K-35K·16薪', location:'杭州·余杭',
+    url:'https://talent.alibaba.com/', desc:'负责电商核心链路的自动化测试框架搭建，制定质量保障策略，开发测试工具平台提升研发效能。',
+    reqs:['本科及以上，计算机相关专业','精通至少一门编程语言（Python/Java）','有自动化测试框架设计经验','了解CI/CD和质量度量体系'],
+    tags:['Python','自动化测试','CI/CD','质量保障'],
+    targetSkills:['Python','Java','自动化测试','CI/CD','质量保障','Selenium','接口测试'],
+    targetSofts:['细节关注','逻辑思维','团队协作','沟通表达'],
+    targetMajors:['计算机/IT','理工科'],
+    targetInterests:['技术研发','质量工程','测试开发','DevOps'] },
+  { id:'t05', track:'tech', logo:'腾', logoColor:'#C2410C', logoBg:'rgba(234,88,12,0.1)',
+    title:'iOS/Android开发工程师', company:'腾讯', salary:'¥25K-45K·16薪', location:'深圳·南山',
+    url:'https://careers.tencent.com/', desc:'负责微信客户端的功能开发与性能优化，参与跨平台技术方案设计。',
+    reqs:['本科及以上，计算机相关专业','精通Swift/Kotlin至少一门','有大型App性能优化经验','了解跨平台方案（Flutter/RN）优先'],
+    tags:['Swift','Kotlin','Flutter','移动端','性能优化'],
+    targetSkills:['Swift','Kotlin','Java','Flutter','React Native','iOS','Android','移动端'],
+    targetSofts:['逻辑思维','问题解决','团队协作'],
+    targetMajors:['计算机/IT','理工科'],
+    targetInterests:['技术研发','移动开发','iOS','Android','客户端'] },
+
+  // ==================== 数据分析 track ====================
+  { id:'d01', track:'data', logo:'腾', logoColor:'#C2410C', logoBg:'rgba(234,88,12,0.1)',
+    title:'商业数据分析师', company:'腾讯', salary:'¥20K-35K·16薪', location:'深圳·南山',
+    url:'https://careers.tencent.com/', desc:'负责腾讯系产品的数据分析和商业洞察，通过AB测试、用户行为分析为产品优化和商业决策提供数据支撑。',
+    reqs:['本科及以上，统计/数学/CS/经济学','精通SQL，熟练Python或R','有AB测试、因果推断等方法论基础','优秀的逻辑分析和商业洞察能力'],
+    tags:['SQL','Python','AB测试','Tableau','商业分析'],
+    targetSkills:['SQL','Python','R','数据分析','数据可视化','Tableau','Excel','AB测试','统计学'],
+    targetSofts:['逻辑思维','沟通表达','批判思维','问题解决'],
+    targetMajors:['计算机/IT','理工科','金融/经管'],
+    targetInterests:['数据分析','商业分析','数据科学','统计学','数据可视化'] },
+  { id:'d02', track:'data', logo:'字', logoColor:'#D97706', logoBg:'rgba(245,158,11,0.1)',
+    title:'数据科学家', company:'字节跳动', salary:'¥30K-55K·15薪', location:'北京·海淀',
+    url:'https://job.bytedance.com/', desc:'运用机器学习和统计建模解决复杂业务问题，设计实验评估框架，推动数据驱动决策文化建设。',
+    reqs:['硕士及以上，CS/统计/数学','精通ML/DL算法','有推荐/广告/增长等场景经验','熟练Python/SQL/Spark'],
+    tags:['Python','机器学习','推荐系统','Spark','AB测试'],
+    targetSkills:['Python','SQL','机器学习','深度学习','Spark','推荐系统','算法','统计学'],
+    targetSofts:['逻辑思维','快速学习','创造力'],
+    targetMajors:['计算机/IT','理工科'],
+    targetInterests:['数据分析','数据科学','机器学习','AI','推荐系统'] },
+  { id:'d03', track:'data', logo:'阿', logoColor:'#7C3AED', logoBg:'rgba(139,92,246,0.1)',
+    title:'数据分析专家', company:'阿里巴巴', salary:'¥25K-45K·16薪', location:'杭州·余杭',
+    url:'https://talent.alibaba.com/', desc:'负责电商/云计算业务的数据分析体系搭建，通过数据挖掘驱动业务增长。',
+    reqs:['3年以上数据分析经验','精通SQL/Hive，熟练Python','有数据仓库和ETL经验','有电商或云计算行业理解优先'],
+    tags:['SQL','Python','数据仓库','数据挖掘','ETL'],
+    targetSkills:['SQL','Python','数据分析','数据挖掘','数据仓库','Hive','ETL','Hadoop'],
+    targetSofts:['逻辑思维','沟通表达','项目管理'],
+    targetMajors:['计算机/IT','理工科','金融/经管'],
+    targetInterests:['数据分析','数据挖掘','数据仓库','大数据','商业智能'] },
+
+  // ==================== 产品设计 track ====================
+  { id:'p01', track:'product', logo:'腾', logoColor:'#C2410C', logoBg:'rgba(234,88,12,0.1)',
+    title:'产品经理', company:'腾讯', salary:'¥22K-40K·16薪', location:'深圳·南山',
+    url:'https://careers.tencent.com/', desc:'负责微信生态产品的需求分析、功能设计和迭代规划，协调研发/设计/运营资源推动产品落地。',
+    reqs:['本科及以上，不限专业','3年以上互联网产品经验','优秀的需求分析和文档撰写能力','有社交/内容类产品经验优先'],
+    tags:['需求分析','产品规划','数据分析','用户研究','PRD'],
+    targetSkills:['产品设计','数据分析','用户研究','PRD','原型设计','A/B测试','SQL'],
+    targetSofts:['沟通表达','创造力','逻辑思维','领导力','批判思维'],
+    targetMajors:['计算机/IT','金融/经管','人文社科','艺术设计'],
+    targetInterests:['产品设计','产品管理','用户体验','产品经理','互联网产品'] },
+  { id:'p02', track:'product', logo:'阿', logoColor:'#7C3AED', logoBg:'rgba(139,92,246,0.1)',
+    title:'UX交互设计师', company:'阿里巴巴', salary:'¥20K-38K·16薪', location:'杭州·余杭',
+    url:'https://talent.alibaba.com/', desc:'负责电商平台核心用户路径的交互设计，通过用户研究和数据分析持续优化产品体验。',
+    reqs:['本科及以上，设计/HCI相关专业','精通Figma/Sketch等设计工具','有移动端产品交互设计经验','有设计系统和规范建设经验优先'],
+    tags:['用户体验','交互设计','Figma','用户研究','设计系统'],
+    targetSkills:['Figma','Sketch','原型设计','用户体验','交互设计','UI','设计','用户研究'],
+    targetSofts:['创造力','沟通表达','同理心','细节关注'],
+    targetMajors:['艺术设计','计算机/IT','人文社科'],
+    targetInterests:['产品设计','用户体验','UI设计','交互设计','视觉设计'] },
+  { id:'p03', track:'product', logo:'华', logoColor:'#0369A1', logoBg:'rgba(2,132,199,0.1)',
+    title:'AI产品经理', company:'华为', salary:'¥28K-50K·14薪', location:'深圳·龙岗',
+    url:'https://career.huawei.com/', desc:'负责AI平台产品的规划和设计，对接算法团队和业务方，将AI能力产品化并推动商业化落地。',
+    reqs:['本科及以上，CS/AI相关专业','理解机器学习基本概念和流程','有B端/SaaS产品经验','有AI产品0-1经验优先'],
+    tags:['AI产品','B端产品','需求分析','机器学习','产品规划'],
+    targetSkills:['AI','机器学习','Python','产品设计','需求分析','B端产品','SaaS'],
+    targetSofts:['沟通表达','逻辑思维','领导力','快速学习'],
+    targetMajors:['计算机/IT','理工科','金融/经管'],
+    targetInterests:['人工智能','产品设计','AI产品','B端产品','技术创新'] },
+
+  // ==================== 金融投资 track ====================
+  { id:'f01', track:'finance', logo:'中', logoColor:'#DC2626', logoBg:'rgba(220,38,38,0.1)',
+    title:'投资分析师', company:'中金公司', salary:'¥20K-35K·14薪', location:'北京·国贸',
+    url:'https://www.cicc.com/', desc:'参与一级市场投资项目尽调与估值分析，撰写投资备忘录，跟踪被投企业运营情况。',
+    reqs:['硕士及以上，金融/经济/MBA','有PE/VC/投行实习经验','扎实的财务分析和建模能力','优秀的沟通和谈判能力'],
+    tags:['投资分析','财务建模','尽职调查','估值','行业研究'],
+    targetSkills:['金融分析','财务分析','Excel','估值建模','行业研究','PPT'],
+    targetSofts:['沟通表达','逻辑思维','抗压能力','谈判协商'],
+    targetMajors:['金融/经管','理工科'],
+    targetInterests:['金融投资','投资分析','PE','VC','投行','一级市场'] },
+  { id:'f02', track:'finance', logo:'华', logoColor:'#0369A1', logoBg:'rgba(2,132,199,0.1)',
+    title:'金融数据分析师', company:'华泰证券', salary:'¥18K-28K·14薪', location:'上海·浦东',
+    url:'https://www.hotjob.cn/', desc:'负责金融数据的采集、清洗、分析和建模，为投资决策提供数据支持。',
+    reqs:['硕士及以上，金融/经济/统计/数学','熟练Python/SQL','具备量化分析能力','了解金融市场基础知识'],
+    tags:['Python','SQL','量化分析','金融建模','数据可视化'],
+    targetSkills:['Python','SQL','数据分析','量化分析','金融','数据可视化','统计学'],
+    targetSofts:['逻辑思维','细节关注','快速学习'],
+    targetMajors:['金融/经管','理工科','计算机/IT'],
+    targetInterests:['金融投资','数据分析','量化分析','证券','金融市场'] },
+  { id:'f03', track:'finance', logo:'平', logoColor:'#E02424', logoBg:'rgba(224,36,36,0.1)',
+    title:'量化策略研究员', company:'平安资管', salary:'¥25K-50K·16薪', location:'上海·陆家嘴',
+    url:'https://talent.pingan.com/', desc:'开发量化投资策略和因子模型，运用统计学和机器学习方法挖掘alpha。',
+    reqs:['硕士及以上，数学/统计/CS/金融工程','精通Python/C++','有多因子或机器学习策略开发经验','熟悉A股/期货市场者优先'],
+    tags:['Python','C++','量化策略','因子模型','机器学习'],
+    targetSkills:['Python','C++','机器学习','量化策略','算法','统计学','金融工程'],
+    targetSofts:['逻辑思维','抗压能力','快速学习'],
+    targetMajors:['理工科','金融/经管','计算机/IT'],
+    targetInterests:['金融投资','量化交易','量化分析','算法交易','对冲基金'] },
+  { id:'f04', track:'finance', logo:'招', logoColor:'#16A34A', logoBg:'rgba(22,163,74,0.1)',
+    title:'行业研究员', company:'招商证券研究所', salary:'¥15K-25K', location:'深圳·福田',
+    url:'https://cms.cmschina.com/', desc:'负责特定行业的深度研究，撰写行业报告和公司研究报告，为投资决策提供研究支持。',
+    reqs:['硕士及以上，经济/金融背景','CPA/CFA优先','具备行业研究框架','优秀的财务分析和写作能力'],
+    tags:['行业研究','财务分析','估值建模','报告撰写'],
+    targetSkills:['财务分析','数据分析','Excel','行业研究','估值建模','PPT'],
+    targetSofts:['逻辑思维','写作能力','快速学习','沟通表达'],
+    targetMajors:['金融/经管','理工科'],
+    targetInterests:['金融投资','行业研究','证券分析','宏观经济','投资研究'] },
+
+  // ==================== 市场运营 track ====================
+  { id:'m01', track:'marketing', logo:'字', logoColor:'#D97706', logoBg:'rgba(245,158,11,0.1)',
+    title:'品牌营销经理', company:'字节跳动', salary:'¥22K-40K·15薪', location:'北京·海淀',
+    url:'https://job.bytedance.com/', desc:'负责抖音系产品的品牌策略制定与执行，策划大型营销活动，管理品牌传播和社交媒体运营。',
+    reqs:['本科及以上，市场营销/传媒相关','3年以上品牌或营销经验','有大型活动策划和执行经验','优秀的创意策划和文案能力'],
+    tags:['品牌策略','活动策划','社交媒体','内容营销','文案'],
+    targetSkills:['市场营销','内容营销','社交媒体','活动策划','文案','数据分析'],
+    targetSofts:['创造力','沟通表达','领导力','演讲展示'],
+    targetMajors:['人文社科','金融/经管','艺术设计'],
+    targetInterests:['市场运营','品牌营销','广告','传媒','市场营销'] },
+  { id:'m02', track:'marketing', logo:'腾', logoColor:'#C2410C', logoBg:'rgba(234,88,12,0.1)',
+    title:'用户增长运营', company:'腾讯', salary:'¥18K-32K·16薪', location:'深圳·南山',
+    url:'https://careers.tencent.com/', desc:'负责微信生态的用户增长策略制定和执行，通过数据驱动设计增长实验，推动DAU和留存率提升。',
+    reqs:['本科及以上，不限专业','有互联网运营或增长经验','熟练SQL和数据分析工具','优秀的实验设计和项目管理能力'],
+    tags:['用户增长','数据分析','A/B测试','用户运营','SQL'],
+    targetSkills:['SQL','数据分析','Excel','A/B测试','用户运营','增长策略'],
+    targetSofts:['创造力','沟通表达','逻辑思维','项目管理'],
+    targetMajors:['金融/经管','人文社科','计算机/IT'],
+    targetInterests:['市场运营','用户增长','增长黑客','数据分析','互联网运营'] },
+  { id:'m03', track:'marketing', logo:'阿', logoColor:'#7C3AED', logoBg:'rgba(139,92,246,0.1)',
+    title:'电商运营专家', company:'阿里巴巴', salary:'¥20K-38K·16薪', location:'杭州·余杭',
+    url:'https://talent.alibaba.com/', desc:'负责淘宝/天猫品类的运营策略和GMV增长，管理商家生态，策划大促活动和日常营销方案。',
+    reqs:['本科及以上','3年以上电商运营经验','精通数据分析和用户洞察','有品类管理或大促策划经验'],
+    tags:['电商运营','品类管理','数据分析','活动策划','商家运营'],
+    targetSkills:['数据分析','Excel','电商运营','活动策划','品类管理','商家管理'],
+    targetSofts:['沟通表达','执行力','逻辑思维','领导力'],
+    targetMajors:['金融/经管','人文社科'],
+    targetInterests:['市场运营','电商','电子商务','品类运营','平台运营'] },
+
+  // ==================== 咨询顾问 track ====================
+  { id:'c01', track:'consulting', logo:'麦', logoColor:'#1E3A5F', logoBg:'rgba(30,58,95,0.1)',
+    title:'管理咨询顾问', company:'麦肯锡', salary:'¥30K-55K·15薪', location:'上海·静安',
+    url:'https://www.mckinsey.com/careers/', desc:'为领先企业提供战略和管理咨询服务，主导行业研究和数据分析，制定可落地的解决方案。',
+    reqs:['顶尖院校硕士/MBA','优秀的分析和问题拆解能力','出色的沟通和客户管理能力','有金融/消费/TMT行业经验优先'],
+    tags:['战略咨询','行业研究','问题解决','客户管理'],
+    targetSkills:['数据分析','Excel','PPT','项目管理','行业研究','战略分析'],
+    targetSofts:['沟通表达','逻辑思维','领导力','抗压能力','批判思维'],
+    targetMajors:['金融/经管','理工科','人文社科'],
+    targetInterests:['咨询顾问','管理咨询','战略咨询','商业分析','企业战略'] },
+  { id:'c02', track:'consulting', logo:'罗', logoColor:'#005A8B', logoBg:'rgba(0,90,139,0.1)',
+    title:'商业分析师', company:'罗兰贝格', salary:'¥25K-42K·14薪', location:'上海·静安',
+    url:'https://www.rolandberger.com/', desc:'参与消费品和工业领域的战略项目，通过数据分析和行业对标为客户提供增长和运营优化建议。',
+    reqs:['顶尖院校本科及以上','扎实的商业分析和研究能力','精通Excel和PPT','英语流利，有海外背景优先'],
+    tags:['商业分析','行业对标','财务建模','客户交付'],
+    targetSkills:['数据分析','Excel','PPT','财务分析','商业分析','行业研究'],
+    targetSofts:['沟通表达','逻辑思维','英语能力','快速学习'],
+    targetMajors:['金融/经管','理工科','人文社科'],
+    targetInterests:['咨询顾问','商业分析','行业研究','市场研究','管理咨询'] },
+  { id:'c03', track:'consulting', logo:'德', logoColor:'#4A4A4A', logoBg:'rgba(74,74,74,0.1)',
+    title:'风险咨询顾问', company:'德勤', salary:'¥18K-30K·14薪', location:'北京·国贸',
+    url:'https://www.deloitte.com/careers/', desc:'为企业提供风险管理、内部控制和合规咨询服务，推动风控体系建设。',
+    reqs:['本科及以上，财务/法律/风险管理','有内控或审计经验优先','CPA/CIA/FRM持证优先','优秀的中英文报告撰写能力'],
+    tags:['风险管理','内部控制','合规','审计'],
+    targetSkills:['风险管理','合规','审计','财务分析','内部控制'],
+    targetSofts:['细节关注','沟通表达','逻辑思维','写作能力'],
+    targetMajors:['金融/经管','人文社科'],
+    targetInterests:['咨询顾问','风险管理','审计','合规','企业咨询'] },
+
+  // ==================== 教育培训 track ====================
+  { id:'e01', track:'education', logo:'腾', logoColor:'#C2410C', logoBg:'rgba(234,88,12,0.1)',
+    title:'教育产品经理', company:'腾讯教育', salary:'¥20K-38K·16薪', location:'北京·海淀',
+    url:'https://careers.tencent.com/', desc:'负责在线教育产品的需求分析和功能设计，结合教育学和AI技术打造个性化学习体验。',
+    reqs:['本科及以上，教育学/心理学/CS','有教育科技产品经验','了解K12/职业教育市场','优秀的数据分析和用户洞察能力'],
+    tags:['教育产品','用户研究','数据分析','产品设计'],
+    targetSkills:['产品设计','数据分析','用户研究','教育技术','教学设计'],
+    targetSofts:['同理心','沟通表达','创造力','快速学习'],
+    targetMajors:['人文社科','计算机/IT','金融/经管'],
+    targetInterests:['教育培训','教育科技','在线教育','教学设计','教育产品'] },
+  { id:'e02', track:'education', logo:'华', logoColor:'#0369A1', logoBg:'rgba(2,132,199,0.1)',
+    title:'培训发展专家', company:'华为', salary:'¥18K-32K·14薪', location:'深圳·龙岗',
+    url:'https://career.huawei.com/', desc:'负责企业培训和人才发展体系建设，设计领导力发展项目，推动组织能力建设。',
+    reqs:['本科及以上，人力资源/教育学','5年以上培训或人才发展经验','有领导力项目设计和交付经验','优秀的课程设计和讲师能力'],
+    tags:['培训管理','人才发展','课程设计','领导力'],
+    targetSkills:['培训管理','课程设计','PPT','项目管理','人才评估'],
+    targetSofts:['沟通表达','演讲展示','领导力','同理心'],
+    targetMajors:['人文社科','金融/经管'],
+    targetInterests:['教育培训','企业培训','人才发展','人力资源','员工发展'] },
+
+  // ==================== 教育培训 extra ====================
+  { id:'e03', track:'education', logo:'网', logoColor:'#7C3AED', logoBg:'rgba(124,58,237,0.1)',
+    title:'课程研发设计师', company:'网易有道', salary:'¥15K-28K·13薪', location:'北京·海淀',
+    url:'https://campus.163.com/', desc:'负责K12/职业教育课程体系的设计与研发，整合教学法和AI技术，提升学习效果和用户体验。',
+    reqs:['本科及以上，教育学/心理学/相关学科','有课程设计或教学经验','了解在线教育产品逻辑','优秀的写作和表达能力'],
+    tags:['课程设计','教学设计','教育科技','在线教育'],
+    targetSkills:['课程设计','教学设计','PPT','内容创作','教育技术','用户研究'],
+    targetSofts:['创造力','同理心','写作能力','快速学习'],
+    targetMajors:['人文社科','金融/经管'],
+    targetInterests:['教育培训','教学设计','在线教育','课程设计','教育科技','知识付费'] },
+  { id:'e04', track:'education', logo:'新', logoColor:'#059669', logoBg:'rgba(5,150,105,0.1)',
+    title:'教育运营经理', company:'新东方', salary:'¥16K-30K·13薪', location:'北京·朝阳',
+    url:'https://hr.xdf.cn/', desc:'负责教育产品的用户增长和学员服务运营，策划招生活动，推动续费率和口碑提升。',
+    reqs:['本科及以上，教育/市场营销/管理相关','有教育行业运营经验','数据分析能力强','优秀的用户沟通能力'],
+    tags:['教育运营','招生策划','用户增长','学员服务'],
+    targetSkills:['数据分析','用户运营','活动策划','Excel','教育运营','内容创作'],
+    targetSofts:['沟通表达','同理心','执行力','创造力'],
+    targetMajors:['人文社科','金融/经管'],
+    targetInterests:['教育培训','教育运营','在线教育','辅导','教育产品','用户增长'] },
+
+  // ==================== 文化传媒 track ====================
+  { id:'n01', track:'media', logo:'字', logoColor:'#D97706', logoBg:'rgba(245,158,11,0.1)',
+    title:'内容运营经理', company:'字节跳动', salary:'¥18K-33K·15薪', location:'北京·海淀',
+    url:'https://job.bytedance.com/', desc:'负责资讯/视频内容生态的策略运营，通过数据分析驱动内容分发效率提升。',
+    reqs:['本科及以上，新闻/传媒/中文相关','2年以上内容运营经验','优秀的内容判断和编辑能力','有数据分析和AB测试思维'],
+    tags:['内容运营','内容策略','数据分析','编辑'],
+    targetSkills:['内容运营','数据分析','社交媒体','编辑','文案','视频制作'],
+    targetSofts:['创造力','沟通表达','写作能力','批判思维'],
+    targetMajors:['人文社科','艺术设计'],
+    targetInterests:['文化传媒','内容创作','新媒体','自媒体','短视频','内容运营'] },
+  { id:'n02', track:'media', logo:'腾', logoColor:'#C2410C', logoBg:'rgba(234,88,12,0.1)',
+    title:'新媒体运营', company:'腾讯', salary:'¥15K-28K·16薪', location:'深圳·南山',
+    url:'https://careers.tencent.com/', desc:'负责官方新媒体矩阵的内容策划和运营，制定社交媒体传播策略，提升品牌影响力和用户互动。',
+    reqs:['本科及以上，新闻/传媒/市场营销','2年以上新媒体运营经验','优秀的内容创作和热点追踪能力','有爆款内容案例者优先'],
+    tags:['新媒体','内容策划','社交媒体','短视频','公众号'],
+    targetSkills:['社交媒体','内容创作','短视频制作','数据分析','文案','运营'],
+    targetSofts:['创造力','沟通表达','写作能力','快速学习'],
+    targetMajors:['人文社科','艺术设计','金融/经管'],
+    targetInterests:['文化传媒','新媒体','自媒体','内容创作','社交媒体','短视频'] },
+  { id:'n03', track:'media', logo:'B', logoColor:'#00A1D6', logoBg:'rgba(0,161,214,0.1)',
+    title:'视频内容创作者', company:'哔哩哔哩', salary:'¥14K-26K·13薪', location:'上海·杨浦',
+    url:'https://www.bilibili.com/blackboard/campus.html', desc:'负责B站优质内容的选题策划、脚本编写与视频制作，通过数据洞察持续提升内容质量和播放量。',
+    reqs:['本科及以上，传媒/中文/艺术设计','有视频创作或自媒体经验','熟悉视频剪辑工具','对Z世代内容趋势敏感'],
+    tags:['视频制作','脚本策划','自媒体','创意内容'],
+    targetSkills:['视频制作','脚本编写','PR','AE','内容创作','文案','短视频'],
+    targetSofts:['创造力','写作能力','快速学习','同理心'],
+    targetMajors:['人文社科','艺术设计'],
+    targetInterests:['文化传媒','短视频','视频制作','内容创作','自媒体','创意创作'] },
+  { id:'n04', track:'media', logo:'小', logoColor:'#FF2442', logoBg:'rgba(255,36,66,0.1)',
+    title:'品牌内容策划', company:'小红书', salary:'¥16K-30K·13薪', location:'上海·静安',
+    url:'https://job.xiaohongshu.com/', desc:'负责小红书平台品牌内容的策划与投放，通过种草内容和达人合作提升品牌曝光和用户转化。',
+    reqs:['本科及以上，市场营销/传媒相关','有UGC平台内容运营经验','对消费趋势和审美有敏锐把握','优秀的文案和创意能力'],
+    tags:['品牌内容','种草营销','UGC','内容策划','达人合作'],
+    targetSkills:['内容策划','文案','社交媒体','品牌营销','数据分析','内容创作'],
+    targetSofts:['创造力','写作能力','沟通表达','快速学习'],
+    targetMajors:['人文社科','艺术设计','金融/经管'],
+    targetInterests:['文化传媒','内容创作','品牌营销','新媒体','创意创作','传媒'] },
+
+  // ==================== 通用综合 track ====================
+  { id:'g01', track:'general', logo:'腾', logoColor:'#C2410C', logoBg:'rgba(234,88,12,0.1)',
+    title:'技术项目经理', company:'腾讯', salary:'¥22K-40K·16薪', location:'深圳·南山',
+    url:'https://careers.tencent.com/', desc:'负责技术项目的全生命周期管理，协调跨团队资源，推动项目按时高质量交付。',
+    reqs:['本科及以上，计算机或管理相关','3年以上项目管理经验','熟悉敏捷/Scrum开发模式','PMP认证优先'],
+    tags:['项目管理','敏捷开发','Scrum','跨团队协作'],
+    targetSkills:['项目管理','敏捷','Scrum','Jira','技术管理'],
+    targetSofts:['沟通表达','领导力','组织能力','时间管理'],
+    targetMajors:['计算机/IT','金融/经管','理工科'],
+    targetInterests:['项目管理','技术管理','团队管理','互联网','产品管理'] },
+  { id:'g02', track:'general', logo:'阿', logoColor:'#7C3AED', logoBg:'rgba(139,92,246,0.1)',
+    title:'人力资源BP', company:'阿里巴巴', salary:'¥18K-35K·16薪', location:'杭州·余杭',
+    url:'https://talent.alibaba.com/', desc:'作为业务部门的人力资源合作伙伴，推动人才招聘、组织发展、绩效管理和文化建设工作。',
+    reqs:['本科及以上，人力资源/心理学/管理学','3年以上HRBP或招聘经验','熟悉互联网行业人才市场','优秀的人际沟通和影响力'],
+    tags:['人力资源','招聘','组织发展','绩效管理'],
+    targetSkills:['人力资源管理','招聘','绩效管理','组织发展','人才评估'],
+    targetSofts:['沟通表达','同理心','领导力','组织能力'],
+    targetMajors:['人文社科','金融/经管'],
+    targetInterests:['人力资源','人才管理','组织发展','企业管理'] },
+  { id:'g03', track:'general', logo:'华', logoColor:'#0369A1', logoBg:'rgba(2,132,199,0.1)',
+    title:'供应链管理', company:'华为', salary:'¥20K-38K·14薪', location:'深圳·龙岗',
+    url:'https://career.huawei.com/', desc:'负责全球供应链的计划与采购管理，优化库存和物流策略。',
+    reqs:['本科及以上，物流/供应链/工业工程','3年以上供应链管理经验','精通ERP和数据分析','有跨国供应链经验优先'],
+    tags:['供应链管理','采购','ERP','库存优化','物流'],
+    targetSkills:['供应链管理','ERP','数据分析','Excel','物流管理'],
+    targetSofts:['逻辑思维','沟通表达','执行力','谈判协商'],
+    targetMajors:['理工科','金融/经管'],
+    targetInterests:['供应链/物流','供应链管理','采购','物流','运营管理'] },
+  { id:'g04', track:'general', logo:'外', logoColor:'#059669', logoBg:'rgba(5,150,105,0.1)',
+    title:'海外业务拓展', company:'SHEIN', salary:'¥20K-35K·14薪', location:'广州·番禺',
+    url:'https://www.sheingroup.com/careers/', desc:'负责海外市场的业务拓展和本地化运营，研究目标市场消费趋势，推动跨境业务增长。',
+    reqs:['本科及以上，国际贸易/市场营销/外语','英语流利，懂小语种优先','有跨境电商或外贸经验','优秀的商务谈判能力'],
+    tags:['海外业务','市场拓展','跨境电商','商务谈判'],
+    targetSkills:['国际贸易','电商运营','市场分析','商务谈判','英语'],
+    targetSofts:['沟通表达','跨文化沟通','谈判协商','适应能力'],
+    targetMajors:['人文社科','金融/经管'],
+    targetInterests:['国际贸易','跨境电商','海外市场','全球化','贸易'] },
+
+  // ==================== 医疗健康 track ====================
+  { id:'h01', track:'medical', logo:'迈', logoColor:'#059669', logoBg:'rgba(5,150,105,0.1)',
+    title:'临床研究医师', company:'迈瑞医疗', salary:'¥25K-45K·14薪', location:'深圳·南山',
+    url:'https://www.mindray.com/', desc:'负责医疗器械的临床试验设计与执行，撰写临床研究方案和报告，推动产品注册上市。',
+    reqs:['硕士及以上，临床医学相关专业','有临床试验经验优先','熟悉GCP和医疗器械法规','良好的英文文献阅读能力'],
+    tags:['临床研究','GCP','医疗器械','临床试验','方案设计'],
+    targetSkills:['临床研究','GCP','数据分析','SPSS','医学统计','文献检索','论文撰写'],
+    targetSofts:['细节关注','逻辑思维','沟通表达','写作能力'],
+    targetMajors:['医学'],
+    targetInterests:['医疗健康','医学研究','临床医学','临床试验','医疗器械','CRA'] },
+  { id:'h02', track:'medical', logo:'华', logoColor:'#0369A1', logoBg:'rgba(2,132,199,0.1)',
+    title:'药物研发科学家', company:'华大基因', salary:'¥20K-40K·14薪', location:'深圳·盐田',
+    url:'https://www.genomics.cn/', desc:'负责新药靶点发现和药物分子设计，运用计算生物学和实验验证相结合的方法推进药物研发管线。',
+    reqs:['博士优先，药学/生物/Chemical Biology','有药物筛选或CADD经验','熟悉分子生物学实验技术','有专利或科研成果发表经历'],
+    tags:['药物研发','CADD','分子生物学','靶点发现','实验设计'],
+    targetSkills:['药物研发','分子生物学','PCR','细胞实验','动物模型','CADD','数据分析','文献检索'],
+    targetSofts:['创造力','逻辑思维','快速学习','抗压能力'],
+    targetMajors:['医学','理工科'],
+    targetInterests:['医学研究','生物医药','药物研发','科研','生命科学','制药','药企'] },
+  { id:'h03', track:'medical', logo:'京', logoColor:'#DC2626', logoBg:'rgba(220,38,38,0.1)',
+    title:'医学事务经理', company:'京东健康', salary:'¥18K-35K·14薪', location:'北京·亦庄',
+    url:'https://jd.jobs/', desc:'负责互联网医疗平台的医学专业内容审核和管理，对接医生专家资源，推动医学知识库建设。',
+    reqs:['硕士及以上，临床医学专业','有医院或互联网医疗经验优先','熟悉疾病诊疗路径','优秀的医学文案和科普能力'],
+    tags:['医学事务','知识库','内容审核','医生资源'],
+    targetSkills:['临床医学','医学知识','数据分析','项目管理','内容审核','沟通协调'],
+    targetSofts:['沟通表达','细节关注','同理心','团队协作'],
+    targetMajors:['医学'],
+    targetInterests:['医疗健康','互联网医疗','医学事务','健康管理','医疗服务','医院管理'] },
+  { id:'h04', track:'medical', logo:'药', logoColor:'#059669', logoBg:'rgba(5,150,105,0.1)',
+    title:'临床数据管理分析师', company:'药明康德', salary:'¥15K-28K·13薪', location:'上海·张江',
+    url:'https://www.wuxiapptec.com/', desc:'负责临床试验数据的采集、清洗和统计分析，确保数据质量和合规性，支持新药注册申报。',
+    reqs:['本科及以上，生物统计/流行病学/统计学','熟悉SAS或R','了解CDISC数据标准','有临床试验数据处理经验优先'],
+    tags:['临床数据','SAS','CDISC','统计分析','数据管理'],
+    targetSkills:['SAS','R','数据管理','统计分析','CDISC','SPSS','Excel'],
+    targetSofts:['细节关注','逻辑思维','沟通表达'],
+    targetMajors:['医学','理工科'],
+    targetInterests:['医疗健康','医学研究','临床数据','数据分析','药物研发','CDM'] },
+  { id:'h05', track:'medical', logo:'丁', logoColor:'#0D9488', logoBg:'rgba(13,148,136,0.1)',
+    title:'临床医学编辑', company:'丁香园', salary:'¥12K-22K·13薪', location:'杭州·滨江',
+    url:'https://www.dxy.cn/', desc:'负责医学专业内容的策划、撰写和审核，将前沿医学研究成果转化为医生和公众可理解的科普内容。',
+    reqs:['临床医学本科及以上','优秀的医学文献解读能力','有医学写作或编辑经验优先','熟练的英文文献检索能力'],
+    tags:['医学编辑','科普写作','文献检索','内容审核','专业知识传播'],
+    targetSkills:['临床医学','文献检索','医学写作','数据分析','论文撰写','科普','医学知识'],
+    targetSofts:['写作能力','细节关注','快速学习','沟通表达'],
+    targetMajors:['医学'],
+    targetInterests:['医疗健康','医学研究','医学编辑','科普','专业知识传播','医学写作'] },
+  { id:'h06', track:'medical', logo:'医', logoColor:'#7C3AED', logoBg:'rgba(124,58,237,0.1)',
+    title:'医疗AI产品经理', company:'医渡科技', salary:'¥25K-50K·14薪', location:'北京·海淀',
+    url:'https://www.yiducloud.com/', desc:'负责医疗AI产品的需求分析与功能设计，将NLP/知识图谱等技术转化为临床决策支持、智能导诊等产品。',
+    reqs:['医学或生物信息学背景','了解医院信息系统（HIS/EMR）','有产品设计或需求分析经验','对AI+医疗有浓厚兴趣'],
+    tags:['医疗AI','产品设计','NLP','临床决策','智能导诊','知识图谱'],
+    targetSkills:['临床医学','数据分析','产品设计','需求分析','项目管理','医学知识','SQL'],
+    targetSofts:['逻辑思维','沟通表达','创新思维','跨部门协作'],
+    targetMajors:['医学','理工科'],
+    targetInterests:['医疗健康','人工智能','医疗AI','医学研究','产品设计','数字医疗'] },
+  { id:'h07', track:'medical', logo:'辉', logoColor:'#0369A1', logoBg:'rgba(2,132,199,0.1)',
+    title:'医学联络官（MSL）', company:'辉瑞', salary:'¥25K-40K·14薪', location:'上海·静安',
+    url:'https://www.pfizer.com.cn/', desc:'作为医学事务核心角色，负责与KOL专家建立学术合作，传递前沿医学信息，支持临床研究的区域落地。',
+    reqs:['硕士及以上，临床医学或药学','3年以上MSL或医学事务经验','优秀的学术演讲和沟通能力','熟悉GCP和药品推广合规'],
+    tags:['MSL','医学事务','KOL管理','学术沟通','临床研究','药企'],
+    targetSkills:['临床医学','临床研究','GCP','数据分析','项目管理','演讲','医学知识'],
+    targetSofts:['沟通表达','人际关系','快速学习','抗压能力'],
+    targetMajors:['医学'],
+    targetInterests:['医疗健康','医学研究','药企','临床研究','医学事务','MSL','学术沟通'] },
+  { id:'h08', track:'medical', logo:'德', logoColor:'#0891B2', logoBg:'rgba(8,145,178,0.1)',
+    title:'临床监查员（CRA）', company:'泰德制药', salary:'¥15K-30K·13薪', location:'北京·亦庄',
+    url:'https://www.tidepharm.com/', desc:'负责临床试验的现场监查，确保研究数据真实完整，推动临床试验按GCP标准和方案执行。',
+    reqs:['医学/药学/护理学本科及以上','有1-3年CRA经验优先','熟悉GCP和ICH指南','能适应频繁出差'],
+    tags:['CRA','临床试验','GCP','监查','数据核查','中心管理'],
+    targetSkills:['GCP','临床研究','临床医学','质量管理','数据分析','医学统计','SOP'],
+    targetSofts:['细节关注','沟通表达','抗压能力','组织协调'],
+    targetMajors:['医学'],
+    targetInterests:['医疗健康','临床试验','临床研究','CRA','医学研究','药企','GCP'] }
+];
+
+// ===== SMART MATCHING ENGINE =====
+// Completely rebuilt: transparent scoring with weighted multi-dimensional matching
+function scoreJob(job, userTracks) {
+  let score = 0;
+  const reasons = [];
+  
+  // ---- 1. Track Relevance (0-25 points) - CORE: is this job in user's preferred track? ----
+  const trackRank = userTracks.indexOf(job.track);
+  if (trackRank === 0) { score += 25; reasons.push('职业方向高度匹配'); }
+  else if (trackRank === 1) { score += 20; reasons.push('职业方向匹配'); }
+  else if (trackRank === 2) { score += 12; reasons.push('职业方向相关'); }
+  else if (trackRank === 3) { score += 6; reasons.push('边缘相关方向'); }
+  else { score += 2; reasons.push('探索性建议'); }
+  
+  // ---- 2. Skill Overlap (0-30 points) ----
+  const allUserSkills = [...profileData.techSkills, ...profileData.customSkills];
+  let skillHits = 0;
+  let matchedSkills = [];
+  allUserSkills.forEach(us => {
+    const usLower = us.toLowerCase();
+    const found = job.targetSkills.some(ts => {
+      const tsLower = ts.toLowerCase();
+      return usLower.includes(tsLower) || tsLower.includes(usLower);
+    });
+    if (found) { skillHits++; matchedSkills.push(us); }
+  });
+  const skillScore = Math.min(skillHits * 6, 30);
+  score += skillScore;
+  if (skillHits > 0) reasons.push('技能匹配' + matchedSkills.length + '项（' + matchedSkills.slice(0,3).join('、') + (matchedSkills.length>3?'等':'') + '）');
+  
+  // ---- 3. Soft Skill Overlap (0-15 points) ----
+  let softHits = 0;
+  profileData.softSkills.forEach(ss => {
+    if (job.targetSofts.some(ts => ts.includes(ss) || ss.includes(ts))) softHits++;
+  });
+  score += Math.min(softHits * 5, 15);
+  if (softHits > 0) reasons.push('软技能契合' + softHits + '项');
+  
+  // ---- 4. Major Match (0-10 points) ----
+  if (profileData.major && job.targetMajors.includes(profileData.major)) {
+    score += 10;
+    reasons.push('专业背景匹配（' + profileData.major + '）');
+  }
+  
+  // ---- 5. Interest Overlap (0-15 points) ----
+  const userInterestsRaw = [profileData.interest, ...profileData.customInterests].filter(Boolean).join(' ');
+  let interestHits = 0;
+  job.targetInterests.forEach(ti => {
+    if (userInterestsRaw.includes(ti)) interestHits++;
+  });
+  score += Math.min(interestHits * 5, 15);
+  if (interestHits > 0) reasons.push('兴趣契合' + interestHits + '项');
+  
+  // ---- 6. Work Mode Alignment (0-15 points) ----
+  const wm = profileData.workModePref || '';
+  const wmName = profileData.workModeName || '';
+  const trackToName = {
+    'tech': '技术研发', 'data': '数据分析', 'product': '产品设计',
+    'finance': '金融投资', 'marketing': '市场运营', 'consulting': '咨询顾问',
+    'education': '教育培训', 'media': '文化传媒', 'general': '通用', 'medical': '医疗健康'
+  };
+  const modeMap = {
+    '技术研发': ['独立完成任务', '深度研究学习'],
+    '数据分析': ['独立完成任务', '深度研究学习'],
+    '产品设计': ['团队协作推进', '跨国文化协作'],
+    '金融投资': ['独立完成任务', '管理统筹规划'],
+    '市场运营': ['团队协作推进', '客户对接沟通'],
+    '咨询顾问': ['客户对接沟通', '管理统筹规划'],
+    '教育培训': ['团队协作推进', '客户对接沟通'],
+    '文化传媒': ['创业自由探索', '远程灵活办公'],
+    '医疗健康': ['深度研究学习', '团队协作推进']
+  };
+  const prefModes = modeMap[trackToName[job.track]] || [];
+  prefModes.forEach(pm => { if (wm.includes(pm)) score += 5; });
+  
+  // ---- 6b. Work Mode Deep-Dive Match (0-10 points) ----
+  // If user completed deep-dive scenario, boost jobs matching the selected mode
+  if (typeof selectedModeId !== 'undefined' && selectedModeId) {
+    const modeToTrack = {
+      'tech':'tech','data':'data','product':'product',
+      'finance':'finance','marketing':'marketing','consulting':'consulting',
+      'education':'education','media':'media',
+      'medical_clinical':'medical','medical_research':'medical',
+      'public_health':'medical','health_management':'medical',
+      'education_tech':'education',
+      'media_content':'media','media_brand':'marketing',
+      'design_ux':'product','design_visual':'media',
+      'engineering':'engineering','biotech':'medical',
+      'law_policy':'consulting','logistics':'general'
+    };
+    if (modeToTrack[selectedModeId] === job.track) {
+      score += 10;
+      reasons.push('深度工作场景匹配');
+    }
+  }
+  
+  // ---- 7. Experience Bonus (0-5 points) ----
+  if (profileData.experience && profileData.experience !== '暂无经验') {
+    score += 2;
+    if (profileData.expDuration && profileData.expDuration.includes('> 1年')) score += 3;
+    else if (profileData.expDuration && profileData.expDuration.includes('6-12')) score += 1;
+  }
+  
+  return {
+    score: Math.min(score, 98),
+    reasons: reasons.length > 0 ? reasons : ['基于你的综合画像推荐']
+  };
+}
+
+function initJobMatches() {
+  const area = document.getElementById('jobMatchList');
+  if (!area) return;
+
+  // Refresh profile data
+  generateProfile();
+
+  // Get user's top tracks
+  const { tracks: userTracks, scores: trackScores } = getUserTopTracks();
+  
+  // Score all jobs with track awareness
+  let scored = jobDatabase.map(j => {
+    const result = scoreJob(j, userTracks);
+    return { ...j, score: result.score, matchReasons: result.reasons };
+  });
+  scored.sort((a, b) => b.score - a.score);
+
+  // Smart selection: top 8 jobs with adaptive diversity
+  let top = [];
+  const trackQuota = {};
+  
+  // Detect preference strength
+  const allTrackScores = Object.entries(trackScores || {});
+  const sortedTrackScores = allTrackScores.sort((a, b) => b[1] - a[1]);
+  const topTrackScore = sortedTrackScores[0] ? sortedTrackScores[0][1] : 0;
+  const secondTrackScore = sortedTrackScores[1] ? sortedTrackScores[1][1] : 0;
+  const scoreDominance = topTrackScore > 0 ? topTrackScore / Math.max(secondTrackScore, 1) : 1;
+  
+  // Determine preference tiers
+  const isVeryStrong = topTrackScore >= 80 && scoreDominance >= 5;  // e.g. medical 149 vs data 13
+  const isStrong = topTrackScore >= 50 && scoreDominance >= 3;
+  const isModerate = topTrackScore >= 24;
+  
+  // Set quotas based on preference strength
+  let primaryMax, otherMax;
+  if (isVeryStrong) {
+    primaryMax = 6; otherMax = 1;  // Very focused: 6 from primary, 1 each from others
+  } else if (isStrong) {
+    primaryMax = 5; otherMax = 2;  // Some diversity allowed
+  } else if (isModerate) {
+    primaryMax = 4; otherMax = 3;  // Standard diverse selection
+  } else {
+    primaryMax = 3; otherMax = 3;  // No clear preference
+  }
+  
+  const numPrimaryTracks = isModerate ? Math.min(3, userTracks.length) : 2;
+  
+  // Round 1: pick top jobs from user's top tracks
+  for (let i = 0; i < numPrimaryTracks; i++) {
+    const track = userTracks[i];
+    if (i === 0 && isVeryStrong) {
+      // Very strong preference: take 3 from primary track
+      const topThree = scored.filter(j => j.track === track).slice(0, 3);
+      topThree.forEach(j => {
+        if (!top.find(t => t.id === j.id)) {
+          top.push(j);
+          trackQuota[track] = (trackQuota[track] || 0) + 1;
+        }
+      });
+    } else if (i === 0 && (isStrong || isModerate)) {
+      const topTwo = scored.filter(j => j.track === track).slice(0, 2);
+      topTwo.forEach(j => {
+        if (!top.find(t => t.id === j.id)) {
+          top.push(j);
+          trackQuota[track] = (trackQuota[track] || 0) + 1;
+        }
+      });
+    } else {
+      const bestFromTrack = scored.find(j => j.track === track && !top.find(t => t.id === j.id));
+      if (bestFromTrack) {
+        top.push(bestFromTrack);
+        trackQuota[track] = (trackQuota[track] || 0) + 1;
+      }
+    }
+  }
+  
+  // Round 2: fill remaining slots, respecting quotas
+  for (const j of scored) {
+    if (top.length >= 8) break;
+    if (top.find(t => t.id === j.id)) continue;
+    const isPrimary = j.track === userTracks[0];
+    const maxForTrack = isPrimary ? primaryMax : otherMax;
+    const tCount = trackQuota[j.track] || 0;
+    if (tCount < maxForTrack) {
+      top.push(j);
+      trackQuota[j.track] = tCount + 1;
+    }
+  }
+  
+  // Final sort by score
+  top.sort((a, b) => b.score - a.score);
+
+  // Track name mapping for display
+  const trackNames = {
+    tech: '技术研发', data: '数据分析', product: '产品设计',
+    finance: '金融投资', marketing: '市场运营', consulting: '咨询顾问',
+    education: '教育培训', media: '文化传媒', general: '通用综合', medical: '医疗健康'
+  };
+
+  // Build HTML
+  const primaryTrack = userTracks[0];
+  const primaryTrackName = trackNames[primaryTrack] || '你的职业画像';
+  
+  let html = '<div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>基于你的<b>' + primaryTrackName + '</b>方向及综合画像，我为你从企业官方渠道筛选了 <b>' + top.length + '个高价值岗位</b>。匹配分数综合考量了你的技能、专业、兴趣和职业偏好。</p></div></div>';
+  
+  // If the user's primary interest isn't well-represented, add a note
+  const topTrackCount = top.filter(j => j.track === primaryTrack).length;
+  if (topTrackCount < 3) {
+    html += '<div style="text-align:center;padding:4px 0;font-size:11px;color:var(--gray)">💡 也为你推荐了其他轨道的优质岗位，拓宽选择面</div>';
+  }
+
+  top.forEach((j, i) => {
+    const scColor = j.score >= 80 ? '#059669' : (j.score >= 60 ? '#D97706' : '#6B7280');
+    const scLabel = j.score >= 85 ? '🔥 高度匹配' : (j.score >= 70 ? '⭐ 良好匹配' : (j.score >= 55 ? '💡 值得关注' : '🔍 探索方向'));
+    const trackLabel = trackNames[j.track] || '';
+    
+    html += `
+    <div class="job-card" onclick="openJobDetail('${j.id}')" style="cursor:pointer">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div class="job-top" style="flex:1;margin-bottom:0">
+          <div class="job-logo" style="background:${j.logoBg};color:${j.logoColor};flex-shrink:0">${j.logo}</div>
+          <div class="job-info"><div class="job-title">${j.title}</div><div class="job-company">${j.company}</div></div>
+        </div>
+        <span style="font-size:11px;color:${scColor};background:${j.score>=80?'rgba(5,150,105,0.1)':(j.score>=60?'rgba(217,119,6,0.1)':'rgba(107,114,128,0.1)')};padding:4px 10px;border-radius:10px;white-space:nowrap;flex-shrink:0;font-weight:600">${scLabel} ${j.score}%</span>
+      </div>
+      <div class="job-meta">
+        <span class="job-salary">${j.salary}</span>
+        <span class="job-location">${j.location}</span>
+        <span style="font-size:10px;background:rgba(14,165,233,0.08);color:var(--accent);padding:1px 6px;border-radius:4px">${trackLabel}</span>
+      </div>
+      <div style="font-size:11px;color:var(--green);margin-bottom:6px;line-height:1.5">
+        ${j.matchReasons.map(r => '<span style="display:inline-block;margin-right:8px">✓ ' + r + '</span>').join('')}
+      </div>
+      <div class="job-req-label">岗位要求</div>
+      <div class="job-req">${j.reqs.slice(0, 2).join('；')}${j.reqs.length > 2 ? '...' : ''}</div>
+      <div class="source-badge" style="display:flex;align-items:center;gap:4px;margin-top:8px">来源：<a href="${j.url}" target="_blank" style="color:var(--accent);text-decoration:underline" onclick="event.stopPropagation()">${j.company}招聘官网 ↗</a></div>
+    </div>`;
+  });
+
+  // Add exploration buttons
+  html += '<button class="btn btn-outline" onclick="goScreen(11)" style="margin-top:8px;font-size:13px">方向不太对？重新探索职业兴趣</button>';
+
+  area.innerHTML = html;
+}
+
+function getUserTopTracks() {
+  // Intelligent track detection from user's career interests
+  const interest = (profileData.interest || '') + ' ' + (profileData.customInterests || []).join(' ');
+  const wm = profileData.workModeName || '';
+  const trackScores = { tech: 0, data: 0, product: 0, finance: 0, marketing: 0, consulting: 0, education: 0, media: 0, general: 0, medical: 0 };
+  
+  // Category mapping: interest keyword → track score boost
+  const categoryMap = {
+    tech: { keywords: ['技术研发','人工智能','编程','开发','软件','后端','前端','算法','系统架构','测试','运维','DevOps','嵌入式','网络安全','区块链','全栈','iOS','Android','客户端','移动开发'],
+            weight: 12 },
+    data: { keywords: ['数据分析','数据科学','统计学','数据挖掘','大数据','数据仓库','商业智能','数据可视化','AB测试','机器学习','深度学习'],
+            weight: 12 },
+    product: { keywords: ['产品设计','产品管理','用户体验','交互设计','UI设计','视觉设计','原型设计','产品经理','互联网产品','B端产品'],
+            weight: 12 },
+    finance: { keywords: ['金融投资','证券','银行','基金','投资','量化','金融分析','风险管理','财务分析','估值','投行','PE','VC','交易','保险'],
+            weight: 12 },
+    marketing: { keywords: ['市场运营','品牌','营销','广告','传媒','增长','新媒体','自媒体','电商','社交媒体','内容营销','活动策划'],
+            weight: 12 },
+    consulting: { keywords: ['咨询顾问','管理咨询','战略咨询','商业分析','企业战略','行业研究','市场研究'],
+            weight: 12 },
+    education: { keywords: ['教育培训','教育','培训','教学','辅导','教育科技','在线教育','课程设计'],
+            weight: 12 },
+    media: { keywords: ['文化传媒','内容创作','短视频','直播','视频制作','文案','编辑','出版','创意'],
+            weight: 12 },
+    medical: { keywords: ['医疗健康','医学研究','临床医学','医生','药物','临床','制药','药企','医院','患者','健康','医疗','医学','科研','学术','试验','诊断','治疗','生物医药','手术','内科','外科'],
+            weight: 12 }
+  };
+  
+  // Score from career interest selections
+  for (const [track, config] of Object.entries(categoryMap)) {
+    config.keywords.forEach(kw => {
+      if (interest.includes(kw)) trackScores[track] += config.weight;
+    });
+  }
+  
+  // Score from work mode name (from deep-dive selection)
+  const workModeTrackMap = {
+    '技术研发':'tech','数据分析':'data','产品经理':'product','金融投资':'finance',
+    '市场运营':'marketing','咨询顾问':'consulting','教育培训':'education','文化传媒':'media',
+    '临床医学':'medical','医学研究':'medical','公共卫生':'medical','健康管理':'medical',
+    '教育科技':'education','内容创作':'media','品牌传播':'marketing',
+    '用户体验设计':'product','视觉创意设计':'media',
+    '工程技术':'engineering','生物医药':'medical',
+    '法律与政策':'consulting','供应链管理':'general'
+  };
+  for (const [name, track] of Object.entries(workModeTrackMap)) {
+    if (wm.includes(name)) trackScores[track] += 10;
+  }
+  
+  // Score from selected scenario card on screen 9
+  if (selectedModeId && workModes[selectedModeId]) {
+    const modeTrackMap = {
+      'tech':'tech','data':'data','product':'product',
+      'finance':'finance','marketing':'marketing','consulting':'consulting',
+      'education':'education','media':'media',
+      'medical_clinical':'medical','medical_research':'medical',
+      'public_health':'medical','health_management':'medical',
+      'education_tech':'education',
+      'media_content':'media','media_brand':'marketing',
+      'design_ux':'product','design_visual':'media',
+      'engineering':'engineering','biotech':'medical',
+      'law_policy':'consulting','logistics':'general'
+    };
+    const track = modeTrackMap[selectedModeId];
+    if (track) trackScores[track] += 10;
+  }
+  
+  // Add job-specific track from selectedJobData
+  if (selectedJobData && selectedJobData.track) {
+    trackScores[selectedJobData.track] += 5;
+  }
+  
+  // Skills influence: if user has tech skills, boost tech/data slightly
+  const allSkills = [...profileData.techSkills, ...profileData.customSkills];
+  const techSkillSet = ['Python','Java','Go','C++','JavaScript','TypeScript','Rust','Docker','Kubernetes','Git'];
+  const dataSkillSet = ['SQL','R','SPSS','Tableau','Power BI','Excel'];
+  const designSkillSet = ['Figma','Sketch','UI','UX','设计'];
+  const financeSkillSet = ['金融分析','财务分析','估值建模','量化分析','投资分析'];
+  const marketingSkillSet = ['市场营销','内容营销','社交媒体','活动策划','增长策略'];
+  const eduSkillSet = ['课程设计','教学设计','教育技术','培训管理'];
+  const mediaSkillSet = ['内容创作','视频制作','短视频','文案','社交媒体运营'];
+  const medicalSkillSet = ['临床研究','GCP','药物研发','SAS','SPSS','医学统计','分子生物学','临床医学','医学知识','SOP','CDISC','病理','药理学','毒理学','动物实验','细胞培养','PCR','Western'];
+  
+  allSkills.forEach(s => {
+    if (techSkillSet.includes(s)) trackScores.tech += 5;
+    if (dataSkillSet.includes(s)) trackScores.data += 5;
+    if (designSkillSet.includes(s)) trackScores.product += 5;
+    if (financeSkillSet.includes(s)) trackScores.finance += 5;
+    if (marketingSkillSet.includes(s)) trackScores.marketing += 5;
+    if (eduSkillSet.includes(s)) trackScores.education += 5;
+    if (mediaSkillSet.includes(s)) trackScores.media += 5;
+    if (medicalSkillSet.includes(s)) trackScores.medical += 5;
+    // Also check for partial keyword match for custom skills
+    const sl = s.toLowerCase();
+    if (['java','python','golang','go语言','c++','前端','后端','算法','架构','编程','开发'].some(k => sl.includes(k))) trackScores.tech += 3;
+    if (['数据','sql','统计','可视化','分析'].some(k => sl.includes(k))) trackScores.data += 3;
+    if (['产品','ux','交互','原型','需求'].some(k => sl.includes(k))) trackScores.product += 3;
+    if (['金融','财务','投资','量化','证券','基金'].some(k => sl.includes(k))) trackScores.finance += 3;
+    if (['营销','运营','品牌','广告','推广','增长'].some(k => sl.includes(k))) trackScores.marketing += 3;
+    if (['教育','培训','教学','辅导','课程'].some(k => sl.includes(k))) trackScores.education += 3;
+    if (['内容','创作','传媒','媒体','视频','文案','剪辑'].some(k => sl.includes(k))) trackScores.media += 3;
+    if (['医学','医疗','临床','药物','制药','生物','药理','病理','诊断','治疗','手术','患者','细胞','分子'].some(k => sl.includes(k))) trackScores.medical += 3;
+  });
+  
+  // Major influence
+  const majorTrackMap = {
+    '计算机/IT': ['tech','data'],
+    '金融/经管': ['finance','consulting'],
+    '艺术设计': ['product','media'],
+    '人文社科': ['media','education','marketing'],
+    '理工科': ['tech','data'],
+    '医学': ['medical']
+  };
+  if (profileData.major && majorTrackMap[profileData.major]) {
+    majorTrackMap[profileData.major].forEach(t => trackScores[t] += 8);
+  }
+
+  // Work mode preference influence (Screen 5 right column)
+  const workModePrefTrackMap = {
+    '深度研究学习': ['tech','data','consulting'],
+    '独立完成任务': ['tech','data','finance'],
+    '团队协作推进': ['product','marketing','education'],
+    '客户对接沟通': ['consulting','marketing','education'],
+    '管理统筹规划': ['consulting','finance','product'],
+    '创业自由探索': ['media','marketing','product'],
+    '远程灵活办公': ['media','tech','data'],
+    '跨国文化协作': ['consulting','marketing','general']
+  };
+  const wmpref = profileData.workModePref || '';
+  for (const [mode, tracks] of Object.entries(workModePrefTrackMap)) {
+    if (wmpref.includes(mode)) {
+      tracks.forEach(t => trackScores[t] += 4);
+    }
+  }
+  
+  // Sort and return ordered tracks
+  const sorted = Object.entries(trackScores).sort((a, b) => b[1] - a[1]);
+  
+  // If no tracks have any score (user selected nothing), return a sensible default
+  if (sorted[0][1] === 0) {
+    return { tracks: ['general','medical','tech','data','product','finance','marketing','consulting','education','media'], scores: trackScores };
+  }
+  
+  return { tracks: sorted.map(e => e[0]), scores: trackScores };
+}
+
+// ===== DYNAMIC JOB DETAIL (Screen 14) =====
+function openJobDetail(jobId) {
+  const job = jobDatabase.find(j => j.id === jobId);
+  if (!job) return;
+
+  selectedJobId = jobId;
+  selectedJobData = job;
+
+  const area = document.getElementById('jobDetailContent');
+  if (!area) return;
+
+  let html = `
+    <div class="card" style="margin-bottom:12px">
+      <div class="job-top">
+        <div class="job-logo" style="background:${job.logoBg};color:${job.logoColor}">${job.logo}</div>
+        <div class="job-info"><div class="job-title">${job.title}</div><div class="job-company">${job.company}</div></div>
+      </div>
+      <div class="job-meta"><span class="job-salary">${job.salary}</span><span class="job-location">${job.location}</span><span class="job-location">全职</span></div>
+      <div class="source-badge" style="margin-bottom:12px;display:flex;align-items:center;gap:4px">
+        来源：<a href="${job.url}" target="_blank" style="color:var(--accent);text-decoration:underline">${job.company}招聘官网 ↗</a>
+      </div>
+      <div class="detail-section"><div class="detail-label">职位描述</div><div class="detail-text">${job.desc}</div></div>
+      <div class="detail-section"><div class="detail-label">任职要求</div>
+        <ul style="padding-left:18px;font-size:13px;color:var(--gray);line-height:2">
+          ${job.reqs.map(r => '<li>' + r + '</li>').join('')}
+        </ul>
+      </div>
+      <div class="detail-section"><div class="detail-label">技能标签</div>
+        <div class="detail-tags">${job.tags.map(t => '<span class="detail-tag">' + t + '</span>').join('')}</div>
+      </div>
+    </div>
+    <button class="btn" onclick="selectJobAndProceed()">选择此岗位，优化简历</button>
+    <button class="btn btn-outline" onclick="goScreen(13)" style="margin-top:8px">返回岗位列表</button>`;
+
+  area.innerHTML = html;
+  goScreen(14);
+}
+
+function selectJobAndProceed() {
+  if (selectedJobData) {
+    profileData.selectedJob = selectedJobData.title + '（' + selectedJobData.company + '）';
+    profileData.workModeName = selectedJobData.title;
+  }
+  goScreen(15);
+}
+
+// ===== DYNAMIC INTERVIEW PREP (Screen 19) =====
+function initInterviewPrep() {
+  const area = document.getElementById('interviewPrepArea');
+  if (!area) return;
+
+  const job = selectedJobData;
+  const jobTitle = job ? job.title : (profileData.workModeName || '目标岗位');
+  const company = job ? job.company : '目标公司';
+  const track = job ? job.track : 'general';
+
+  // Track-specific technical prep items
+  const techPrep = {
+    tech: ['复习数据结构与算法（重点：树/图/动态规划）', '准备系统设计案例分析（高并发/分布式）', '熟悉常用框架原理（Spring/React等）', '准备代码Review和重构案例', '复习计算机网络和操作系统基础知识'],
+    data: ['复习SQL窗口函数与复杂查询', '准备Python/R数据处理案例分析', '掌握AB测试和因果推断方法论', '复习概率统计和假设检验', '了解数据仓库和ETL基础知识'],
+    product: ['准备1-2个产品设计案例分析', '复习用户研究方法和数据分析框架', '熟悉Figma/Sketch等工具操作', '准备PRD文档撰写案例', '了解设计系统和组件化思维'],
+    finance: ['复习财务报表分析和估值模型', '准备Python/SQL数据处理案例', '掌握金融市场基础概念和指标', '准备1个行业研究框架案例', '了解宏观经济分析方法论'],
+    marketing: ['准备用户增长策略案例分析', '复习A/B测试和实验设计方法', '准备1-2个营销活动策划案例', '熟悉主流社交媒体运营工具', '了解ROI分析和归因模型'],
+    consulting: ['准备2-3个案例分析框架（MECE/金字塔原理）', '练习快速估算和市场sizing问题', '准备财务分析和建模案例', '了解目标行业最新趋势和动态', '练习结构化表达和PPT技巧'],
+    education: ['准备1个教学设计或课程开发案例', '了解教育科技行业最新趋势', '复习学习理论和教学法基础', '准备学员/用户需求分析案例', '了解在线教育平台运营模式'],
+    media: ['准备1-2个内容策划或传播案例', '熟悉主流社交媒体平台算法', '练习短视频脚本和文案撰写', '了解内容数据分析和优化方法', '准备品牌传播和舆情管理案例'],
+    general: ['复习核心技能相关的面试问题', '准备1-2个项目经验深入描述', '了解目标行业最新动态', '练习行为面试常见问题', '准备向面试官提问的问题清单']
+  };
+
+  // Track-specific behavior prep
+  const behaviorPrep = {
+    tech: ['用STAR法则准备2-3个技术项目经历', '准备团队协作和冲突解决的案例', '准备技术决策和权衡的思考过程'],
+    data: ['用STAR法则准备2-3个数据分析项目', '准备跨部门沟通和协作的案例', '准备数据驱动决策的真实故事'],
+    product: ['用STAR法则准备2-3个产品项目经历', '准备用户洞察和需求发现的案例', '准备产品失败/迭代的真实故事'],
+    finance: ['用STAR法则准备2-3个项目经历描述', '准备市场分析和投资建议的案例', '准备在压力下工作的真实经历'],
+    marketing: ['用STAR法则准备2-3个营销项目经历', '准备创意策划到执行落地的案例', '准备数据驱动优化营销效果的故事'],
+    consulting: ['用STAR法则准备2-3个咨询项目经历', '准备客户管理和期望管理的案例', '准备面对模棱两可问题时的思考方式'],
+    education: ['用STAR法则准备2-3个教学或培训项目', '准备学员成长和教学成果的案例', '准备教育创新和技术应用的故事'],
+    media: ['用STAR法则准备2-3个内容项目经历', '准备爆款内容从策划到传播的案例', '准备数据分析驱动内容优化的故事'],
+    general: ['用STAR法则准备2-3个核心项目经历', '准备团队协作和领导力的案例', '准备挑战和失败经历的反思']
+  };
+
+  const prep = techPrep[track] || techPrep.general;
+  const behav = behaviorPrep[track] || behaviorPrep.general;
+
+  // Dress code advice per track
+  const dressCode = { tech:'互联网公司建议商务休闲着装', data:'互联网/科技公司建议商务休闲', product:'互联网公司建议商务休闲着装', finance:'金融机构建议正装出席', marketing:'互联网公司可商务休闲，传统行业建议正装', consulting:'咨询公司建议正装出席', education:'教育/科技公司建议商务休闲', media:'互联网/媒体公司建议商务休闲', general:'建议根据公司文化选择商务休闲或正装' };
+
+  let html = `
+    <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>以下是针对<b>${jobTitle}${company ? '（' + company + '）' : ''}</b>的个性化面试准备方案。</p></div></div>
+    <div class="card">
+      <h3 style="font-size:15px;color:var(--primary-light);margin-bottom:12px">🔧 技术面试准备</h3>
+      ${prep.map(p => `<div class="check-item" style="margin-bottom:10px"><div class="check-box" onclick="this.textContent=this.textContent==='✓'?'☐':'✓'" style="cursor:pointer">☐</div><span style="font-size:14px;color:var(--primary)">${p}</span></div>`).join('')}
+    </div>
+    <div class="card">
+      <h3 style="font-size:15px;color:var(--primary-light);margin-bottom:12px">💬 行为面试要点</h3>
+      ${behav.map(b => `<div class="tip-item" style="margin-bottom:8px"><div class="feature-dot blue" style="width:6px;height:6px;border-radius:3px;margin-top:7px"></div><span class="tip-text">${b}</span></div>`).join('')}
+      <div class="tip-item"><div class="feature-dot blue" style="width:6px;height:6px;border-radius:3px;margin-top:7px"></div><span class="tip-text">提前了解${company || '目标公司'}业务线与文化</span></div>
+      <div class="tip-item"><div class="feature-dot blue" style="width:6px;height:6px;border-radius:3px;margin-top:7px"></div><span class="tip-text">准备2-3个关于行业趋势的提问</span></div>
+    </div>`;
+
+  area.innerHTML = html;
+}
+
+// ===== DYNAMIC INTERVIEW SIM (Screen 20) =====
+function initInterviewSim() {
+  const area = document.getElementById('interviewSimArea');
+  if (!area) return;
+
+  const job = selectedJobData;
+  const track = job ? job.track : 'general';
+
+  const questions = {
+    tech: { q: '请描述你参与过的一个最有挑战性的技术项目。你遇到了什么问题？用了什么技术方案？结果如何？', hint: '重点突出技术选型的思考过程、遇到的难点和你的解决方案，用数字量化结果' },
+    data: { q: '请描述一个你使用数据分析解决实际问题的案例。你用了什么方法？结果如何？', hint: '重点说明数据来源、分析方法论、以及你的分析如何影响了业务决策' },
+    product: { q: '请描述一个你从0到1推进的产品功能。如何发现需求？如何设计？上线后效果如何？', hint: '重点说明用户需求的发现过程、设计方案的选择逻辑、以及上线后的数据和反馈' },
+    finance: { q: '请描述你做过的一个投资分析或行业研究案例。你的分析框架是什么？得出了什么结论？', hint: '重点说明分析框架的逻辑性、数据的完整性、以及结论的投资指导意义' },
+    marketing: { q: '请描述一个你策划或执行的营销活动。目标是什么？用了什么策略？ROI如何？', hint: '重点说明目标设定的逻辑、策略选择的依据、以及量化评估的结果' },
+    consulting: { q: '请描述一个你参与的咨询项目。如何拆解问题？给了客户什么建议？最终落地效果如何？', hint: '重点说明问题拆解的框架、数据收集和分析的方法、以及建议的可操作性' },
+    education: { q: '请描述一个你设计或参与的教学/培训项目。你的教学方法是什么？学员反馈和效果如何？', hint: '重点说明教学设计理念、学习者需求分析、以及量化评估的学习成果' },
+    media: { q: '请描述一个你创作或运营的爆款内容案例。你的选题思路是什么？数据表现如何？', hint: '重点说明选题策略、内容制作过程、传播渠道选择、以及量化的传播数据' },
+    general: { q: '请描述一个你认为最有代表性的项目经历。你的角色是什么？最大的挑战是什么？你从中学到了什么？', hint: '用STAR法则组织答案，重点突出你的主动性和成长性' }
+  };
+
+  const q = questions[track] || questions.general;
+
+  let html = `
+    <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>最后，让我扮演面试官，帮你进行<b>模拟面试</b>。请回答这个问题：</p></div></div>
+    <div class="card card-stroke" style="background:linear-gradient(135deg, rgba(2,132,199,0.03), rgba(14,165,233,0.06))">
+      <p style="font-size:15px;color:var(--primary);font-weight:700;margin-bottom:8px">🗣️ 面试官提问：</p>
+      <p style="font-size:14px;color:var(--primary);line-height:1.7">"${q.q}"</p>
+    </div>
+    <div class="card">
+      <h3 style="font-size:14px;color:var(--primary-light);margin-bottom:10px">💡 回答提示</h3>
+      <div class="tip-item" style="margin-bottom:8px"><div class="tip-num">S</div><span class="tip-text"><b>Situation：</b>描述项目背景和目标</span></div>
+      <div class="tip-item" style="margin-bottom:8px"><div class="tip-num">T</div><span class="tip-text"><b>Task：</b>说明你的具体任务</span></div>
+      <div class="tip-item" style="margin-bottom:8px"><div class="tip-num">A</div><span class="tip-text"><b>Action：</b>详细说明你采用的方法和工具</span></div>
+      <div class="tip-item" style="margin-bottom:8px"><div class="tip-num">R</div><span class="tip-text"><b>Result：</b>量化你的成果（用数字）</span></div>
+      <div style="font-size:12px;color:var(--gray);margin-top:6px;padding-top:8px;border-top:1px dashed var(--border)">💡 ${q.hint}</div>
+    </div>
+    <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>你可以先在心里组织答案，实际面试时建议控制在<b>2-3分钟</b>。准备充分后，我们就可以结束了！</p></div></div>`;
+
+  area.innerHTML = html;
+}
+
+// ===== DYNAMIC JOB TIPS (Screen 21) =====
+function initJobTips() {
+  const area = document.getElementById('jobTipsArea');
+  if (!area) return;
+
+  const job = selectedJobData;
+  const company = job ? job.company : '目标公司';
+  const track = job ? job.track : 'general';
+
+  const dressCode = { tech:'互联网公司，建议商务休闲着装（衬衫/卫衣+长裤即可，无需西装）', data:'互联网/科技公司，建议商务休闲着装', product:'互联网公司，建议商务休闲着装', finance:'金融机构，建议正装出席（西装+领带）', marketing:'互联网公司可商务休闲，传统行业建议正装', consulting:'咨询公司，建议正装出席（西装+领带/商务套装）', education:'教育/科技公司，建议商务休闲（得体即可，不要求正装）', media:'互联网/媒体公司，建议商务休闲（可偏个性化风格）', general:'建议提前了解' + company + '的公司文化，选择商务休闲或正装' };
+
+  let html = `
+    <div class="card card-stroke">
+      <h3 style="font-size:16px;color:var(--primary-light);margin-bottom:12px">🎯 最后的关键建议</h3>
+      <div class="tip-item" style="margin-bottom:12px"><div class="tip-num">1</div><span class="tip-text"><b>投递时间：</b>建议在工作日上午9-11点投递简历，此时HR查看邮件的概率最高</span></div>
+      <div class="tip-item" style="margin-bottom:12px"><div class="tip-num">2</div><span class="tip-text"><b>内推渠道：</b>优先通过校友、LinkedIn等渠道获取内推，内推简历被打开的概率是海投的5倍以上</span></div>
+      <div class="tip-item" style="margin-bottom:12px"><div class="tip-num">3</div><span class="tip-text"><b>跟进策略：</b>投递后3-5个工作日可礼貌性跟进一次邮件，表达你对该岗位的持续热情</span></div>
+      <div class="tip-item" style="margin-bottom:12px"><div class="tip-num">4</div><span class="tip-text"><b>面试着装：</b>${dressCode[track] || dressCode.general}</span></div>
+      <div class="tip-item"><div class="tip-num">5</div><span class="tip-text"><b>薪资谈判：</b>提前了解${company ? company + '同级别岗位' : '行业'}薪资范围，准备好你的期望薪资和理由</span></div>
+    </div>`;
+
+  area.innerHTML = html;
+}
+
+// ===== SUCCESS SCREEN (Screen 22) =====
+function initSuccessScreen() {
+  const job = selectedJobData;
+  const jobTitle = job ? job.title : (profileData.workModeName || '目标岗位');
+  const company = job ? job.company : '';
+
+  // Dynamic match score based on profile completeness
+  let matchScore = 75;
+  const totalSkills = profileData.techSkills.length + profileData.softSkills.length + profileData.customSkills.length;
+  if (totalSkills >= 8) matchScore = 90;
+  else if (totalSkills >= 5) matchScore = 85;
+  else if (totalSkills >= 3) matchScore = 80;
+  if (profileData.experience && profileData.experience !== '暂无经验') matchScore += 3;
+  if (profileData.expDuration && profileData.expDuration.includes('> 1年')) matchScore += 2;
+  matchScore = Math.min(matchScore, 96);
+
+  const scoreEl = document.getElementById('finalMatchScore');
+  if (scoreEl) scoreEl.textContent = matchScore + '%';
+
+  const subtitle = document.getElementById('successSubtitle');
+  if (subtitle && jobTitle) {
+    subtitle.textContent = '你已完成「' + jobTitle + (company ? ' · ' + company : '') + '」方向的求职准备流程';
+  }
+
+  // Dynamic golden wish message
+  const goldenWish = document.getElementById('goldenWishText');
+  if (goldenWish) {
+    const wish = company 
+      ? '祝您面试成功，顺利拿下' + company + jobTitle + '的Offer！'
+      : '祝您面试成功拿到Offer！';
+    goldenWish.textContent = wish;
+  }
+  const goldenSub = document.getElementById('goldenWishSubtitle');
+  if (goldenSub && company) {
+    goldenSub.textContent = company + '的' + jobTitle + '岗位正在等待像你这样的人才';
+  }
+
+  const msg = document.getElementById('finalMessage');
+  if (msg) {
+    msg.innerHTML = '针对<b>' + jobTitle + (company ? '（' + company + '）' : '') + '</b>方向，<br>你已做好充足的准备。<br><br>每一份简历都是一次重新认识自己的旅程。<br>每一个面试都是一次成长的历练。<br><br>现在，勇敢地向前走吧！<br><br><b style="font-size:16px;color:var(--accent)">愿你在这段求职之路上，<br>遇见最好的自己。</b>';
+  }
+}
+
+// ===== RESUME CHOICE & ADVICE (Screen 15) =====
+function initResumeChoice() {
+  // Reset to choice view
+  const choiceView = document.getElementById('resumeChoiceView');
+  const adviceView = document.getElementById('resumeAdviceView');
+  if (choiceView) choiceView.style.display = '';
+  if (adviceView) adviceView.style.display = 'none';
+  
+  // Update job title in advice
+  const jobTitleEl = document.getElementById('adviceJobTitle');
+  if (jobTitleEl) {
+    const job = selectedJobData;
+    jobTitleEl.textContent = job ? job.title + '（' + job.company + '）' : (profileData.workModeName || '你的职业画像');
+  }
+  
+  // Scroll to top
+  const scroll = document.querySelector('[data-screen="15"] .scroll-area');
+  if (scroll) scroll.scrollTop = 0;
+}
+
+function goToResumeUpload() {
+  goScreen(16);
+}
+
+function showResumeAdvice() {
+  const choiceView = document.getElementById('resumeChoiceView');
+  const adviceView = document.getElementById('resumeAdviceView');
+  if (choiceView) choiceView.style.display = 'none';
+  if (adviceView) adviceView.style.display = '';
+  
+  // Generate advice content
+  generateResumeAdvice();
+  
+  // Scroll to top
+  const scroll = document.querySelector('[data-screen="15"] .scroll-area');
+  if (scroll) scroll.scrollTop = 0;
+}
+
+function generateResumeAdvice() {
+  const area = document.getElementById('resumeAdviceContent');
+  if (!area) return;
+  
+  const job = selectedJobData;
+  const jobTitle = job ? job.title : (profileData.workModeName || '目标岗位');
+  const company = job ? job.company : '';
+  const track = job ? job.track : 'general';
+  const skills = [...profileData.techSkills, ...profileData.customSkills];
+  const interest = profileData.interest || '';
+  
+  // Track-specific resume structure advice
+  const structures = {
+    tech: [
+      { title: '个人信息与求职意向', icon: '👤', items: [
+        '姓名、电话、邮箱（必填）、GitHub/技术博客链接（推荐）',
+        '<strong>求职意向：</strong>明确写出"' + jobTitle + '"方向，不建议写"任何岗位均可"',
+        '技术栈一句话总结：如"3年Java后端开发经验，熟悉分布式系统与微服务架构"'
+      ]},
+      { title: '专业技能（简历前1/3位置）', icon: '🛠', items: [
+        '<strong>编程语言：</strong>' + (skills.length > 0 ? skills.filter(s => ['Python','Java','Go','C++','JavaScript','TypeScript','Rust'].includes(s)).join('、') || '如 Java、Python、Go' : '如 Java、Python、Go') + '（标注熟练程度：精通/熟练/了解）',
+        '<strong>框架与工具：</strong>列出相关技术栈（Spring Boot、React、Docker等），按重要性排序',
+        '<strong>领域知识：</strong>如分布式系统、数据库优化、性能调优等与' + jobTitle + '相关的专业领域'
+      ]},
+      { title: '项目/实习经历（STAR法则）', icon: '💼', items: [
+        '每个项目用 <strong>STAR法则</strong> 结构描述：情境→任务→行动→结果',
+        '突出<strong>技术难点</strong>和你的<strong>解决方案</strong>，而非简单的功能罗列',
+        '用<strong>量化数据</strong>证明成果（如"QPS提升40%"、"服务可用性99.99%"）',
+        '如无正式工作经历，课程项目、开源贡献、个人作品均可写入'
+      ]},
+      { title: '教育背景与证书', icon: '🎓', items: [
+        '学历、专业、毕业年份（或预计毕业年份）',
+        '相关课程：列出与' + jobTitle + '直接相关的3-5门课程',
+        '技术证书（如AWS认证、PMP）和竞赛获奖'
+      ]},
+      { title: '整体排版建议', icon: '📐', items: [
+        '<strong>一页原则：</strong>工作经验<5年必须控制在一页以内',
+        '使用PDF格式投递，文件名格式：<strong>姓名-学校-求职岗位.pdf</strong>',
+        '字体统一（中文黑体/微软雅黑，英文Calibri/Arial），字号10.5-12pt',
+        '避免使用照片（国内技术岗）、花哨模板和复杂表格'
+      ]}
+    ],
+    data: [
+      { title: '个人信息与求职意向', icon: '👤', items: [
+        '姓名、电话、邮箱（必填）',
+        '<strong>求职意向：</strong>明确写出"' + jobTitle + '"或"数据分析方向"',
+        '个人标签：如"统计学背景 + Python/SQL精通 + 商业分析经验"'
+      ]},
+      { title: '专业技能（核心区域）', icon: '🛠', items: [
+        '<strong>分析工具：</strong>SQL（精通）、Python/R（熟练）、Tableau/Power BI（熟练）',
+        '<strong>方法论：</strong>A/B测试、因果推断、假设检验、回归分析等',
+        '<strong>业务理解：</strong>用户增长、留存分析、转化漏斗、RFM模型等'
+      ]},
+      { title: '项目/实习经历（量化成果为王）', icon: '💼', items: [
+        '每个分析项目按：<strong>业务问题 → 分析方法 → 关键发现 → 业务影响</strong>的框架描述',
+        '用数字说话："分析200万+用户行为数据，发现XX问题，推动改版后<strong>留存率提升12%</strong>"',
+        '展示完整的数据处理链路：数据清洗→探索分析→建模→可视化→报告→推动落地',
+        '即使只有课程项目，也要用专业分析框架包装'
+      ]},
+      { title: '教育背景', icon: '🎓', items: [
+        '统计/数学/计算机/经济学等相关专业可突出',
+        '列出分析相关的课程和工具（SQL、Python、统计学、机器学习等）',
+        '数据分析竞赛（Kaggle等）和证书（如Google Data Analytics）'
+      ]},
+      { title: '排版要点', icon: '📐', items: [
+        '一页简历，用数据可视化思维组织信息层次',
+        '技能栏用标签形式展示，方便HR快速扫描关键词',
+        '重点数字用<strong>粗体</strong>突出，引导阅读视线'
+      ]}
+    ],
+    product: [
+      { title: '个人信息与求职意向', icon: '👤', items: [
+        '姓名、电话、邮箱、作品集链接（推荐）',
+        '<strong>求职意向：</strong>明确写出"' + jobTitle + '"方向',
+        '个人定位：如"计算机背景 + 用户研究能力 + 2段产品实习"'
+      ]},
+      { title: '核心能力矩阵', icon: '🛠', items: [
+        '<strong>产品硬技能：</strong>需求分析、PRD撰写、用户调研、数据分析、原型设计（Figma/Axure）',
+        '<strong>产品软技能：</strong>跨部门沟通、项目管理、逻辑思维、同理心',
+        '<strong>行业认知：</strong>对目标领域（社交/电商/内容等）的用户行为和市场趋势理解'
+      ]},
+      { title: '项目/实习经历（用数据讲故事）', icon: '💼', items: [
+        '每个项目按：<strong>发现需求 → 设计方案 → 推动落地 → 效果验证</strong>的叙事结构',
+        '量化产品成果："主导XX功能迭代，上线后<strong>DAU提升18%，用户NPS从6.2提升至8.5</strong>"',
+        '展示完整的产品闭环：从用户调研到PRD到开发跟进到数据分析',
+        '<strong>必须包含</strong>失败/迭代经历，展示反思和成长能力'
+      ]},
+      { title: '教育背景', icon: '🎓', items: [
+        '专业不限，但需展示与产品相关的课程和项目',
+        '如有产品相关竞赛/黑客松/创业经历，务必列出',
+        '其他亮点：写作能力（公众号/知乎）、设计作品等'
+      ]},
+      { title: '格式建议', icon: '📐', items: [
+        '一页简历，信息密度高但层次分明',
+        '可附带产品作品集链接（Notion/个人网站）',
+        '简历语言简洁有力，用动词开头（主导/推动/设计/优化）'
+      ]}
+    ],
+    finance: [
+      { title: '个人信息与求职意向', icon: '👤', items: [
+        '姓名、电话、邮箱（必须正式）',
+        '<strong>求职意向：</strong>明确写出"' + jobTitle + '"方向',
+        '一句话专业定位：如"金融学硕士 + CFA二级 + 2段券商实习"'
+      ]},
+      { title: '专业技能与资质', icon: '🛠', items: [
+        '<strong>资质证书：</strong>CFA/FRM/CPA等优先列出（含备考中的）',
+        '<strong>分析工具：</strong>Bloomberg/Wind终端、Python/SQL、Excel财务建模',
+        '<strong>专业知识：</strong>财务分析、估值建模（DCF/可比公司）、行业研究框架'
+      ]},
+      { title: '实习/项目经历', icon: '💼', items: [
+        '金融岗特别看重<strong>实习经历</strong>，每段详细说明研究方法和结论',
+        '量化成果："独立完成XX行业深度报告（30页），覆盖5家上市公司，提出买入建议后3个月涨幅22%"',
+        '展示分析框架：宏观经济→行业分析→公司研究→估值→投资建议',
+        '如无金融实习，可将学术研究项目按行业研究的标准包装'
+      ]},
+      { title: '教育背景', icon: '🎓', items: [
+        '金融/经济/数学/统计类专业背景优先',
+        'GPA≥3.5/4.0务必写出；列出核心金融课程',
+        '海外交换、学术论文发表等加分项'
+      ]},
+      { title: '格式规范', icon: '📐', items: [
+        '金融行业简历要求<strong>高度专业化</strong>，避免花哨设计',
+        '使用标准商务英语（如投外资），文件名：姓名-学校-求职岗位.pdf',
+        '一页为佳，信息要精炼专业'
+      ]}
+    ],
+    marketing: [
+      { title: '个人信息与求职意向', icon: '👤', items: [
+        '姓名、电话、邮箱、社交媒体/作品链接（推荐）',
+        '<strong>求职意向：</strong>明确写出"' + jobTitle + '"方向',
+        '个人标签：如"新媒体操盘手 + 数据驱动增长 + 3年互联网运营经验"'
+      ]},
+      { title: '核心能力', icon: '🛠', items: [
+        '<strong>运营技能：</strong>用户增长、内容运营、活动策划、社群管理',
+        '<strong>数据能力：</strong>SQL、Excel、数据分析、A/B测试、ROI分析',
+        '<strong>工具：</strong>微信公众号后台、巨量引擎、小红书蒲公英、飞书/钉钉'
+      ]},
+      { title: '项目/工作经历（结果导向）', icon: '💼', items: [
+        '<strong>必须用数字说话：</strong>"策划618大促活动，GMV 1200万，ROI 3.2"',
+        '每个项目写清楚：目标→策略→执行→结果<strong>四步闭环</strong>',
+        '展示方法论：如AARRR模型、用户分层、RFM分析的应用',
+        '包含失败案例和调整策略（展示迭代能力）'
+      ]},
+      { title: '教育背景', icon: '🎓', items: [
+        '市场营销/传媒/广告相关专业可突出，但运营岗位不限专业',
+        '自媒体账号运营经验（含粉丝量/爆款案例）是极强加分项',
+        '相关的课程项目和实习'
+      ]},
+      { title: '简历加分项', icon: '📐', items: [
+        '附带作品集（活动策划案、爆款内容截图、数据看板截图）',
+        '简历本身也是一次"营销"——用好的文案展示你的运营sense',
+        '控制一页，用排版引导HR的阅读路径'
+      ]}
+    ],
+    consulting: [
+      { title: '个人信息与求职意向', icon: '👤', items: [
+        '姓名、电话、邮箱',
+        '<strong>求职意向：</strong>明确写出"' + jobTitle + '"方向',
+        '个人定位：如"top 5% GPA + 3段咨询实习 + 英语流利"'
+      ]},
+      { title: '核心能力框架', icon: '🛠', items: [
+        '<strong>分析能力：</strong>结构化思维（MECE/金字塔原理）、定量分析、行业研究',
+        '<strong>沟通能力：</strong>客户管理、高层汇报、英语工作语言（标注托福/雅思/六级成绩）',
+        '<strong>工具：</strong>Excel建模、PPT制作（咨询级美观度）、ThinkCell等'
+      ]},
+      { title: '实习/项目经历', icon: '💼', items: [
+        '咨询行业极度看重<strong>实习经历</strong>，每段要突出分析框架和客户影响',
+        '展示完整项目周期："为某消费品客户制定市场进入策略 → 分析500+数据点 → 提出3条核心建议 → 客户采纳2条"',
+        '突出<strong>领导力</strong>和<strong>团队协作</strong>案例',
+        '学术项目要展示研究方法和商业洞察力'
+      ]},
+      { title: '教育背景', icon: '🎓', items: [
+        '顶尖院校背景是加分项，写出GPA和排名（如有优势）',
+        '商赛经历（贝恩杯/欧莱雅Brandstorm等）非常重要',
+        '海外交换、双学位等国际化经历'
+      ]},
+      { title: '简历规范', icon: '📐', items: [
+        '管理咨询对简历格式要求<strong>极其严格</strong>：标准美式简历格式',
+        '每段经历用动词过去式开头（Led/Analyzed/Developed/Recommended）',
+        '精确到月的日期、统一的标点符号、无任何错别字',
+        '一页简历是铁律，用紧凑排版最大化信息密度'
+      ]}
+    ],
+    general: [
+      { title: '个人信息与求职意向', icon: '👤', items: [
+        '姓名、电话、邮箱',
+        '<strong>求职意向：</strong>明确写出"' + jobTitle + '"方向，不建议空泛',
+        '个人亮点一句话总结（你的核心竞争优势）'
+      ]},
+      { title: '核心技能', icon: '🛠', items: [
+        '列出与' + jobTitle + '最相关的<strong>硬技能</strong>（技术工具、专业软件、语言能力等）',
+        '列出<strong>软技能</strong>和相关的项目/工作案例（沟通、管理、协调等）',
+        '按与目标岗位的相关性从高到低排序'
+      ]},
+      { title: '工作/项目经历', icon: '💼', items: [
+        '使用<strong>STAR法则</strong>重新组织每段经历',
+        '强调<strong>量化成果</strong>和<strong>可迁移技能</strong>',
+        '如果转行，重点突出与' + jobTitle + '相关的技能和经验',
+        '对不相关经历进行精简，突出可迁移能力（如领导力、数据分析能力等）'
+      ]},
+      { title: '教育背景', icon: '🎓', items: [
+        '学历、专业、毕业时间',
+        '相关课程和学术成就',
+        '证书、培训、线上课程（Coursera、得到等）'
+      ]},
+      { title: '通用建议', icon: '📐', items: [
+        '<strong>一页原则：</strong>工作经验<5年必须一页',
+        '检查错别字和语法，请他人帮忙审阅',
+        '根据每个投递岗位微调简历关键词（不要一份简历海投所有岗位）',
+        'ATS友好：避免图片、复杂表格、非标准字体'
+      ]}
+    ]
+  };
+  
+  const sections = structures[track] || structures.general;
+  
+  let html = '<div class="advice-header-banner"><p style="font-size:14px;color:var(--primary);line-height:1.7"><b>📋 简历结构建议</b> — 针对 <b>' + jobTitle + (company ? '（' + company + '）' : '') + '</b> 方向<br><span style="font-size:12px;color:var(--gray)">以下是根据你的职业画像生成的个性化简历撰写指南，涵盖结构安排和各板块的具体建议。</span></p></div>';
+  
+  sections.forEach((sec, i) => {
+    html += '<div class="advice-section-card" style="animation:fadeInUp 0.3s ' + (i * 0.08) + 's both">';
+    html += '<h4><span>' + sec.icon + '</span> ' + sec.title + '</h4>';
+    html += '<ul>';
+    sec.items.forEach(item => {
+      html += '<li>' + item + '</li>';
+    });
+    html += '</ul></div>';
+  });
+  
+  // Add personalized tips based on user profile
+  html += '<div class="card" style="background:linear-gradient(135deg, rgba(22,163,74,0.04), rgba(14,165,233,0.04));border:1.5px solid var(--accent-light);margin-top:4px">';
+  html += '<h4 style="font-size:14px;color:var(--green);margin-bottom:10px">💡 针对你的个性化提示</h4>';
+  html += '<ul style="padding-left:16px;font-size:13px;color:var(--gray);line-height:1.9">';
+  
+  if (profileData.experience === '暂无经验' || !profileData.experience) {
+    html += '<li>你是<strong>应届生/转行者</strong>，建议用<strong>课程项目</strong>、<strong>竞赛经历</strong>和<strong>个人作品</strong>来填补经验空白，展示你的学习能力和潜力</li>';
+    if (skills.length > 0) {
+      html += '<li>将你的技术技能（' + skills.slice(0, 3).join('、') + '等）结合具体的<strong>课程大作业</strong>或<strong>自学项目</strong>来展示，比单纯列技能更有说服力</li>';
+    }
+  }
+  
+  if (profileData.education && profileData.major) {
+    html += '<li>你的' + profileData.education + '学历 + ' + profileData.major + '专业背景，可以在教育板块突出与' + jobTitle + '相关的课程设置和研究方向</li>';
+  }
+  
+  if (profileData.customInterests.length > 0) {
+    html += '<li>你额外关注的领域（' + profileData.customInterests.join('、') + '）可以在简历的"其他信息"板块中提及，展示你的多元化和热情</li>';
+  }
+  
+  html += '<li>投递' + (company || '目标公司') + '前，建议根据该岗位JD微调简历中的<strong>关键词</strong>，让ATS系统更容易匹配到你的简历</li>';
+  html += '</ul></div>';
+  
+  area.innerHTML = html;
+  
+  // Scroll to top of the advice content
+  const scroll = document.querySelector('[data-screen="15"] .scroll-area');
+  if (scroll) scroll.scrollTop = 0;
+}
+
+function finishResumeAdvice() {
+  goScreen(16);
+}
+
+function skipResumeEntirely() {
+  showToast('已跳过简历步骤，进入面试准备');
+  setTimeout(() => goScreen(19), 400);
+}
+
+function skipResumeUpload() {
+  showToast('已跳过简历上传，进入面试准备');
+  setTimeout(() => goScreen(19), 400);
+}
+
+// ===== RESUME UPLOAD — REAL FILE HANDLING =====
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const zone = document.getElementById('uploadZone');
+  if (zone) zone.classList.add('active');
+}
+
+function handleDragLeave(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const zone = document.getElementById('uploadZone');
+  if (zone) zone.classList.remove('active');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const zone = document.getElementById('uploadZone');
+  if (zone) zone.classList.remove('active');
+  
+  const files = e.dataTransfer.files;
+  if (files.length > 0) {
+    processResumeFile(files[0]);
+  }
+}
+
+function handleResumeFile(event) {
+  const files = event.target.files;
+  if (files.length > 0) {
+    processResumeFile(files[0]);
+  }
+  // Reset input so re-selecting the same file triggers change again
+  event.target.value = '';
+}
+
+function processResumeFile(file) {
+  // Validate file type
+  const validTypes = ['.pdf', '.doc', '.docx', '.txt',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain'];
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+  const isValid = validTypes.includes(ext) || validTypes.includes(file.type);
+  
+  if (!isValid) {
+    showToast('仅支持 PDF、Word、TXT 格式');
+    return;
+  }
+  
+  // Validate file size
+  if (file.size > MAX_FILE_SIZE) {
+    showToast('文件超过 10MB，请压缩后重试');
+    return;
+  }
+  
+  // Format file size for display
+  let sizeStr;
+  if (file.size < 1024) sizeStr = file.size + ' B';
+  else if (file.size < 1024 * 1024) sizeStr = (file.size / 1024).toFixed(1) + ' KB';
+  else sizeStr = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+  
+  // Update UI
+  const zone = document.getElementById('uploadZone');
+  const status = document.getElementById('uploadStatus');
+  const btn = document.getElementById('uploadNextBtn');
+  const fileInfo = document.getElementById('uploadedFileInfo');
+  
+  if (zone) zone.style.display = 'none';
+  if (status) status.style.display = 'block';
+  if (fileInfo) fileInfo.textContent = file.name + ' (' + sizeStr + ') · 已安全加密传输';
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '上传成功，开始分析';
+    btn.setAttribute('onclick', 'startResumeAnalysis()');
+    btn.style.background = '';
+    btn.style.opacity = '';
+  }
+  
+  // Also update the upload text on the zone for drag zone
+  const uploadText = document.getElementById('uploadText');
+  if (uploadText && file) {
+    uploadText.textContent = file.name;
+    uploadText.style.color = 'var(--accent)';
+  }
+  
+  showToast(file.name + ' 上传成功 ✓');
+}
+
+function simulateUpload() {
+  // DEPRECATED — kept for backward compatibility.
+  // New flow uses handleResumeFile / processResumeFile via click or drag-drop.
+  document.getElementById('resumeFileInput').click();
+}
+
+// ===== RESUME ANALYSIS ENGINE =====
+let uploadedFileName = '';
+let uploadedFileType = '';
+let analysisRunning = false;
+let analysisPhasesDone = 0;
+
+function startResumeAnalysis() {
+  if (analysisRunning) return;
+  analysisRunning = true;
+  
+  // Collect file info
+  const fileInfo = document.getElementById('uploadedFileInfo');
+  if (fileInfo) {
+    const parts = fileInfo.textContent.split(' (');
+    uploadedFileName = parts[0] || '未知文件';
+    uploadedFileType = uploadedFileName.split('.').pop().toLowerCase();
+  }
+  
+  // Navigate to Screen 17
+  goScreen(17);
+  
+  // Reset analysis state
+  analysisPhasesDone = 0;
+  const phasesEl = document.getElementById('analysisPhases');
+  if (phasesEl) phasesEl.innerHTML = '';
+  
+  // Show progress, hide result
+  document.getElementById('analysisProgress').style.display = '';
+  document.getElementById('analysisResult').style.display = 'none';
+  const btn = document.getElementById('analysisNextBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '分析中，请稍候...'; btn.style.opacity = '0.5'; }
+  
+  // Reset score displays
+  ['matchScoreRing','statOverall','statSkill','statExp'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '--%';
+  });
+  
+  // Start phased analysis
+  runAnalysisPhases();
+}
+
+function runAnalysisPhases() {
+  const phases = [
+    { icon: '📄', title: '解析简历结构', desc: '识别教育背景、工作经历、项目经验、技能模块...', detail: '已从 ' + uploadedFileName + ' 中提取文档结构' },
+    { icon: '🔍', title: '提取关键信息', desc: '提取技能关键词、行业术语、成果量化指标...', detail: '识别出技术技能关键词及项目量化成果' },
+    { icon: '🎯', title: '岗位精准匹配', desc: '将你的履历与目标岗位JD逐项对标...', detail: '正在与' + (profileData.workModeName || '目标岗位') + '要求进行逐项比对' },
+    { icon: '📊', title: '综合评分计算', desc: '基于多维模型计算匹配度分数...', detail: '技能权重40% · 经验权重35% · 学历权重15% · 其他10%' }
+  ];
+  
+  let phaseIdx = 0;
+  
+  function runNext() {
+    if (phaseIdx >= phases.length) {
+      // All phases done — complete analysis
+      completeAnalysis();
+      return;
+    }
+    
+    const p = phases[phaseIdx];
+    const phasesEl = document.getElementById('analysisPhases');
+    if (!phasesEl) return;
+    
+    // Add phase with "running" animation
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:10px 0;opacity:0;transform:translateY(8px);transition:all 0.35s ease';
+    div.innerHTML = '<span style="font-size:20px;flex-shrink:0">' + p.icon + '</span><div><b style="font-size:13px;color:var(--primary)">' + p.title + '</b><p style="font-size:11px;color:var(--gray);margin:2px 0 0">' + p.desc + '</p></div>';
+    phasesEl.appendChild(div);
+    
+    // Animate in
+    requestAnimationFrame(() => {
+      div.style.opacity = '1';
+      div.style.transform = 'translateY(0)';
+    });
+    
+    // After short delay, show detail line
+    setTimeout(() => {
+      const detailEl = document.createElement('p');
+      detailEl.style.cssText = 'font-size:10px;color:var(--green);margin:4px 0 0 30px;opacity:0;transition:opacity 0.3s';
+      detailEl.textContent = '✓ ' + p.detail;
+      div.appendChild(detailEl);
+      requestAnimationFrame(() => { detailEl.style.opacity = '1'; });
+    }, 500);
+    
+    phaseIdx++;
+    analysisPhasesDone = phaseIdx;
+    setTimeout(runNext, 1000 + Math.random() * 600);
+  }
+  
+  runNext();
+}
+
+function completeAnalysis() {
+  analysisRunning = false;
+  
+  // Hide progress, show result
+  document.getElementById('analysisProgress').style.display = 'none';
+  document.getElementById('analysisResult').style.display = '';
+  document.getElementById('analysisTyping').style.display = 'none';
+  
+  // Generate dynamic scores based on profile completeness
+  let skillScore = 78, expScore = 70, overallScore = 74;
+  
+  // Adjust skill score based on selected skills count
+  const totalSkills = profileData.techSkills.length + profileData.softSkills.length + profileData.customSkills.length;
+  if (totalSkills >= 8) { skillScore = 92; expScore = 82; overallScore = 88; }
+  else if (totalSkills >= 5) { skillScore = 85; expScore = 76; overallScore = 82; }
+  else if (totalSkills >= 3) { skillScore = 80; expScore = 72; overallScore = 77; }
+  
+  // Adjust experience score
+  if (profileData.experience && profileData.experience !== '暂无经验') {
+    expScore += 8;
+    overallScore += 4;
+  }
+  if (profileData.expDuration) {
+    if (profileData.expDuration.includes('> 1年')) { expScore += 5; overallScore += 3; }
+    else if (profileData.expDuration.includes('6-12')) { expScore += 3; overallScore += 2; }
+  }
+  
+  overallScore = Math.min(overallScore, 98);
+  skillScore = Math.min(skillScore, 98);
+  expScore = Math.min(expScore, 95);
+  
+  // Animate score numbers
+  animateScore('matchScoreRing', overallScore);
+  animateScore('statOverall', overallScore);
+  animateScore('statSkill', skillScore);
+  animateScore('statExp', expScore);
+  
+  // Update job title
+  const jobEl = document.getElementById('matchJobTitle');
+  if (jobEl) {
+    jobEl.textContent = (profileData.workModeName || '目标岗位') + ' · 匹配分析';
+  }
+  
+  // Update summary
+  const summary = document.getElementById('analysisSummary');
+  if (summary) {
+    let summaryText = '';
+    if (overallScore >= 85) {
+      summaryText = '整体匹配度<strong>较高</strong>！你的履历与目标岗位有较多的契合点。以下是针对该岗位的<b>具体优化建议</b>：';
+    } else if (overallScore >= 70) {
+      summaryText = '匹配度<strong>良好</strong>，但仍有提升空间。以下是针对该岗位的<b>具体优化建议</b>：';
+    } else {
+      summaryText = '当前匹配度有提升必要。别担心，以下是针对该岗位的<b>具体优化建议</b>，按要求修改后匹配度可显著提升：';
+    }
+    summary.innerHTML = summaryText;
+  }
+  
+  // Enable next button
+  const btn = document.getElementById('analysisNextBtn');
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '查看详细优化建议 →';
+    btn.style.opacity = '1';
+    btn.style.background = 'var(--gradient)';
+  }
+  
+  // Pre-generate tips for Screen 18
+  generateResumeTips();
+  
+  showToast('分析完成 ✓');
+}
+
+function animateScore(elId, target) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  
+  const start = 0;
+  const duration = 600;
+  const startTime = performance.now();
+  
+  function tick(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // Ease out cubic
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = Math.round(start + (target - start) * eased);
+    el.textContent = current + '%';
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  
+  requestAnimationFrame(tick);
+}
+
+// ===== DYNAMIC RESUME TIPS GENERATOR =====
+function generateResumeTips() {
+  const area = document.getElementById('resumeTipsArea');
+  if (!area) return;
+  
+  const tips = [];
+  const skills = [...profileData.techSkills, ...profileData.softSkills, ...profileData.customSkills];
+  const exp = profileData.experience || '';
+  const mode = profileData.workModeName || '';
+  const fileName = uploadedFileName || '你的简历';
+  
+  // Build tips based on actual user data
+  
+  // Tip 1: Skills section alignment
+  if (skills.length > 0) {
+    const top3 = skills.slice(0, 3).join('、');
+    tips.push({
+      title: '技能栏排序与突出',
+      issue: '简历中的技能展示区域需要重新排列优先级，以匹配岗位JD中的核心要求',
+      reason: '招聘系统（ATS）和HR在扫描简历时通常只在前5-8秒内做初步筛选。将' + (mode || '目标岗位') + '最看重的技能放在最前面，可以显著提高简历通过率。',
+      solution: '建议将 <b>' + top3 + '</b> 移至技能栏最前面，并标注熟练程度。例如："' + skills[0] + '（精通）"、"' + (skills[1] || skills[0]) + '（熟练）"。用<b>粗体</b>突出与岗位JD原文一致的技能关键词。'
+    });
+  }
+  
+  // Tip 2: Project experience STAR format
+  if (exp && exp !== '暂无经验') {
+    tips.push({
+      title: '项目经验STAR法则改写',
+      issue: '简历中的项目描述过于平铺直叙，缺少结构化表达，无法让HR快速评估你的实际贡献',
+      reason: '顶尖企业HR和用人部门习惯STAR格式（情境Situation → 任务Task → 行动Action → 结果Result）。结构化描述可以让他们在10秒内判断你的经验含金量。',
+      solution: '请将「' + exp + '」相关经历按STAR法则重写：<br>• <b>S-情境</b>：项目背景、业务规模<br>• <b>T-任务</b>：你的具体职责和目标<br>• <b>A-行动</b>：你采取的具体技术/方法<br>• <b>R-结果</b>：量化成果（如"效率提升25%"、"用户增长30%"）'
+    });
+  } else {
+    tips.push({
+      title: '用课程项目/竞赛填补经验空白',
+      issue: '当前简历缺乏正式工作经历，经验部分较为薄弱',
+      reason: '对于应届生或转行者，HR并不期望你有多年工作经验，但会关注你的<b>学习能力</b>和<b>项目实践</b>。课程作业、竞赛经历、开源贡献都可以转化为有说服力的项目经验。',
+      solution: '建议添加2-3个课程项目或竞赛经历：<br>• 每个项目写3-4行，使用STAR格式<br>• 写明你使用的技术栈（' + (skills.slice(0, 3).join('、') || '相关技术') + '）<br>• 即使项目简单，也要描述你解决了什么问题'
+    });
+  }
+  
+  // Tip 3: Keywords from target job
+  if (mode) {
+    const modeKeywords = {
+      '技术研发': ['系统架构', '性能优化', '代码质量', '技术方案', '微服务'],
+      '数据分析': ['数据驱动', '洞察', '可视化', 'A/B测试', '指标'],
+      '产品设计': ['用户调研', '需求分析', 'PRD', '交互设计', '迭代'],
+      '金融投资': ['风险管理', '投资组合', '量化分析', '尽职调查', '估值'],
+      '市场运营': ['用户增长', '转化率', 'ROI', '品牌策略', '渠道'],
+      '咨询顾问': ['问题拆解', '假设驱动', '行业研究', '方案落地', '客户管理']
+    };
+    const kws = modeKeywords[mode] || ['核心能力', '专业技能', '项目经验', '团队协作', '成果导向'];
+    tips.push({
+      title: '关键词密度优化',
+      issue: '你的' + uploadedFileName + '中与"' + mode + '"岗位相关的核心关键词出现频率偏低',
+      reason: '许多企业使用ATS（Applicant Tracking System）自动筛选简历，系统会根据JD中的关键词对简历打分。<b>关键词密度不足</b>是简历被自动筛选掉的首要原因。',
+      solution: '确保以下高频词在你的简历中自然出现至少1-2次：<br><b>' + kws.join('</b>、<b>') + '</b><br>提示：不要堆砌，而是在项目描述和经验总结中<b>自然地</b>嵌入，每个词的上下文要有实质内容支撑。'
+    });
+  }
+  
+  // Tip 4: Quantified achievements
+  tips.push({
+    title: '量化成果 — 让数据说话',
+    issue: '简历中各段经历的描述以定性为主，缺少具体的数字和百分比来支撑你的能力主张',
+    reason: '数字是简历中最有说服力的元素。对比两句话——"负责数据分析，提高了效率" vs "通过Python自动化数据处理流程，将月报生成时间从8小时缩短至30分钟，<b>效率提升94%</b>"——后者给人的冲击力差距巨大。',
+    solution: '逐段检查你的经历，为每条关键成果加上数字：<br>• 处理了多大量级的数据？（如"分析100万+条交易记录"）<br>• 带来了多少改进？（如"识别出15%的成本优化空间"）<br>• 影响了多少人？（如"服务200+内部用户"）<br>如果实在无法量化，至少用<b>对比</b>来体现变化（如"从手工处理升级为全自动化流程"）。'
+  });
+  
+  // Tip 5: Education / certificate alignment
+  if (profileData.education) {
+    tips.push({
+      title: '学历与证书的战略呈现',
+      issue: '教育背景部分需要根据' + (mode || '目标岗位') + '的行业特点进行针对性包装',
+      reason: '不同行业对学历和证书的权重不同。金融行业看重CFA/FRM，技术行业看重GitHub/开源贡献，咨询行业看重名校+GPA。你需要按目标行业的优先级排列你的学历和证书。',
+      solution: '建议调整：<br>• 如果你的GPA≥3.5/4.0或排名前20%，务必写出<br>• 相关课程与' + (mode || '目标岗位') + '关联的要列出（如"' + mode + '相关课程：' + (skills.slice(0, 2).join('、') || '相关技术') + '等"）<br>• 证书/资质：列出所有与目标行业相关的证书，即使是"备考中"也值得提及'
+    });
+  }
+  
+  // Tip 6: Resume format / layout
+  tips.push({
+    title: '视觉排版与一页原则',
+    issue: '简历的整体布局和视觉层次需要优化，以确保HR在15秒内可以抓取到关键信息',
+    reason: '据统计，HR平均花在一份简历上的首次浏览时间仅<b>6-15秒</b>。如果信息结构混乱、重点不突出，优秀的履历也会被错过。',
+    solution: '排版建议：<br>• 严格遵守<b>一页原则</b>（工作经验<5年）<br>• 使用清晰的<b>分区标题</b>（教育→技能→项目经验→其他）<br>• 每段经历控制在3-4个bullet point<br>• 技能栏用<b>标签/词云</b>形式展示，一目了然<br>• 避免使用表格、图片等ATS无法解析的元素'
+  });
+  
+  // Render tips
+  let html = '<div class="card"><h3 style="font-size:16px;color:var(--primary-light);margin-bottom:16px">📝 针对' + uploadedFileName + '的优化建议</h3><p style="font-size:11px;color:var(--gray);margin-bottom:16px">以下建议基于你的<strong>' + (profileData.workModeName || '目标岗位') + '</strong>方向生成，与你的简历内容一一对应</p>';
+  
+  tips.forEach((t, i) => {
+    html += `
+      <div style="margin-bottom:16px;border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:rgba(2,132,199,0.04)">
+          <span class="tip-num" style="flex-shrink:0">${i + 1}</span>
+          <b style="font-size:14px;color:var(--primary)">${t.title}</b>
+        </div>
+        <div style="padding:12px 14px 4px">
+          <p style="font-size:12px;color:#DC2626;margin-bottom:6px"><b>⚠ 问题：</b>${t.issue}</p>
+          <p style="font-size:12px;color:var(--primary-light);margin-bottom:6px"><b>💡 原因：</b>${t.reason}</p>
+          <p style="font-size:12px;color:var(--green);margin-bottom:10px"><b>✅ 方案：</b>${t.solution}</p>
+        </div>
+      </div>`;
+  });
+  
+  html += '</div>';
+  area.innerHTML = html;
+  
+  // Scroll to top
+  const scroll = document.querySelector('[data-screen="18"] .scroll-area');
+  if (scroll) scroll.scrollTop = 0;
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// ===== RESET =====
+function resetApp() {
+  // Clear all selections
+  document.querySelectorAll('.chip.selected').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.scenario-card.selected').forEach(c => c.classList.remove('selected'));
+  // Reset upload
+  const zone = document.getElementById('uploadZone');
+  const status = document.getElementById('uploadStatus');
+  const btn = document.getElementById('uploadNextBtn');
+  const input = document.getElementById('resumeFileInput');
+  const uploadText = document.getElementById('uploadText');
+  if (zone) zone.style.display = '';
+  if (status) status.style.display = 'none';
+  if (btn) { btn.disabled = true; btn.textContent = '上传后开始分析'; btn.style.background = ''; btn.style.opacity = ''; btn.setAttribute('onclick', 'startResumeAnalysis()'); }
+  if (input) input.value = '';
+  if (uploadText) { uploadText.textContent = '点击上传或拖拽简历文件'; uploadText.style.color = ''; }
+  document.getElementById('expFollow') && (document.getElementById('expFollow').style.display = 'none');
+  // Reset analysis state
+  analysisRunning = false;
+  analysisPhasesDone = 0;
+  uploadedFileName = '';
+  uploadedFileType = '';
+  // Reset job selection
+  selectedJobId = null;
+  selectedJobData = null;
+  goScreen(1);
+}
+
+// ===== KEYBOARD NAVIGATION =====
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' && currentScreen < totalScreens) goScreen(currentScreen + 1);
+  if (e.key === 'ArrowLeft' && currentScreen > 1) goScreen(currentScreen - 1);
+});
+
+// ===== INITIAL SETUP =====
+(function() {
+  // Preload first screen as active
+  document.querySelector('[data-screen="1"]').classList.add('active');
+})();
+</script>
+</body>
+</html>
