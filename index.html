@@ -1782,7 +1782,7 @@ html, body { width:100%; height:100%; overflow:hidden; font-family:var(--font); 
   </div>
   <div class="scroll-area">
     <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>要让简历与岗位高度匹配，请<b>上传你的简历</b>，我将为你提供针对性的优化建议。</p></div></div>
-    <input type="file" id="resumeFileInput" accept=".pdf,.doc,.docx,.txt" style="display:none" onchange="handleResumeFile(event)">
+    <input type="file" id="resumeFileInput" accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" style="display:none" onchange="handleResumeFile(event)">
     <div class="upload-zone" id="uploadZone"
       onclick="document.getElementById('resumeFileInput').click()"
       ondragover="handleDragOver(event)"
@@ -2301,7 +2301,7 @@ R-结果：取得了什么量化成果
   </div>
   <div class="scroll-area">
     <div class="ai-row"><div class="ai-avatar">AI</div><div class="ai-bubble"><p>请<b>上传你的简历</b>，我会像资深猎头一样分析你的背景，为你匹配最合适的岗位。<br><br>✅ 支持 <b>PDF / Word (DOCX) / TXT</b> 格式，文件不超过10MB。<br>⚡ PDF 和 Word 将自动提取文本内容。</p></div></div>
-    <input type="file" id="resumeFlowFileInput" accept=".pdf,.doc,.docx,.txt" style="display:none" onchange="handleResumeFlowFile(event)">
+    <input type="file" id="resumeFlowFileInput" accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" style="display:none" onchange="handleResumeFlowFile(event)">
     <div class="upload-zone" id="resumeFlowUploadZone"
       onclick="document.getElementById('resumeFlowFileInput').click()"
       ondragover="handleResumeFlowDragOver(event)"
@@ -7797,19 +7797,122 @@ function processResumeFile(file) {
   uploadedFileType = file.type || ext;
   uploadedFileSize = sizeStr;
   
-  // Read text file content for preview
-  if (file.type === 'text/plain' || ext === '.txt') {
+  // Disable button during async parsing
+  if (btn) { btn.disabled = true; btn.textContent = '正在解析文件...'; btn.style.opacity = '0.5'; }
+
+  // Read file content — TXT / PDF / DOCX all parsed properly
+  if (ext === '.txt') {
     const reader = new FileReader();
     reader.onload = function(e) {
       uploadedFileContent = e.target.result;
+      if (btn) { btn.disabled = false; btn.textContent = '上传成功，开始分析'; btn.style.opacity = ''; }
+      showToast(file.name + ' 上传成功 ✓');
+    };
+    reader.onerror = function() {
+      uploadedFileContent = generateFileContentPreview();
+      if (btn) { btn.disabled = false; btn.textContent = '上传成功，开始分析'; btn.style.opacity = ''; }
+      showToast('TXT 文件读取失败，已使用简历预览');
     };
     reader.readAsText(file);
-  } else {
-    // For non-text files, generate preview content based on profile
+  } else if (ext === '.pdf') {
+    if (typeof pdfjsLib === 'undefined') {
+      uploadedFileContent = generateFileContentPreview();
+      if (btn) { btn.disabled = false; btn.textContent = '上传成功，开始分析'; btn.style.opacity = ''; }
+      showToast('PDF解析库未加载，请刷新页面后重试');
+      return;
+    }
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    var pdfReader = new FileReader();
+    pdfReader.onload = function(e) {
+      var typedarray = new Uint8Array(e.target.result);
+      pdfjsLib.getDocument({ data: typedarray }).promise.then(function(pdf) {
+        var maxPages = pdf.numPages;
+        var pageTexts = [];
+        var loadedCount = 0;
+        function extractPage(pageNum) {
+          if (pageNum > maxPages) {
+            uploadedFileContent = pageTexts.join('\n\n');
+            if (btn) { btn.disabled = false; btn.textContent = '上传成功，开始分析'; btn.style.opacity = ''; }
+            showToast(file.name + ' PDF解析成功 ✓');
+            return;
+          }
+          pdf.getPage(pageNum).then(function(page) {
+            return page.getTextContent();
+          }).then(function(textContent) {
+            var pageText = '';
+            var lastY = null;
+            for (var i = 0; i < textContent.items.length; i++) {
+              var item = textContent.items[i];
+              if (lastY !== null && Math.abs(lastY - item.transform[5]) > 2) {
+                pageText += '\n';
+              } else if (pageText.length > 0 && !pageText.endsWith(' ')) {
+                pageText += ' ';
+              }
+              pageText += item.str;
+              lastY = item.transform[5];
+            }
+            pageTexts.push(pageText.trim());
+            loadedCount++;
+            var prog = document.getElementById('uploadText');
+            if (prog) prog.textContent = '解析PDF... ' + loadedCount + '/' + maxPages + ' 页';
+            extractPage(pageNum + 1);
+          }).catch(function() {
+            pageTexts.push('[第 ' + pageNum + ' 页无法提取]');
+            loadedCount++;
+            extractPage(pageNum + 1);
+          });
+        }
+        extractPage(1);
+      }).catch(function() {
+        uploadedFileContent = generateFileContentPreview();
+        if (btn) { btn.disabled = false; btn.textContent = '上传成功，开始分析'; btn.style.opacity = ''; }
+        showToast('PDF解析失败，已使用简历预览');
+      });
+    };
+    pdfReader.onerror = function() {
+      uploadedFileContent = generateFileContentPreview();
+      if (btn) { btn.disabled = false; btn.textContent = '上传成功，开始分析'; btn.style.opacity = ''; }
+      showToast('PDF读取失败');
+    };
+    pdfReader.readAsArrayBuffer(file);
+  } else if (ext === '.docx') {
+    if (typeof mammoth === 'undefined') {
+      uploadedFileContent = generateFileContentPreview();
+      if (btn) { btn.disabled = false; btn.textContent = '上传成功，开始分析'; btn.style.opacity = ''; }
+      showToast('Word解析库未加载，请刷新页面后重试');
+      return;
+    }
+    var docxReader = new FileReader();
+    docxReader.onload = function(e) {
+      var arrayBuffer = e.target.result;
+      mammoth.extractRawText({ arrayBuffer: arrayBuffer }).then(function(result) {
+        uploadedFileContent = result.value || '';
+        if (!uploadedFileContent || uploadedFileContent.trim().length < 10) {
+          uploadedFileContent = generateFileContentPreview();
+        }
+        if (btn) { btn.disabled = false; btn.textContent = '上传成功，开始分析'; btn.style.opacity = ''; }
+        showToast(file.name + ' DOCX解析成功 ✓');
+      }).catch(function() {
+        uploadedFileContent = generateFileContentPreview();
+        if (btn) { btn.disabled = false; btn.textContent = '上传成功，开始分析'; btn.style.opacity = ''; }
+        showToast('DOCX解析失败，已使用简历预览');
+      });
+    };
+    docxReader.onerror = function() {
+      uploadedFileContent = generateFileContentPreview();
+      if (btn) { btn.disabled = false; btn.textContent = '上传成功，开始分析'; btn.style.opacity = ''; }
+      showToast('DOCX读取失败');
+    };
+    docxReader.readAsArrayBuffer(file);
+  } else if (ext === '.doc') {
     uploadedFileContent = generateFileContentPreview();
+    if (btn) { btn.disabled = false; btn.textContent = '上传成功，开始分析'; btn.style.opacity = ''; }
+    showToast('旧版.doc格式不支持浏览器直接解析，请另存为.docx或.txt后重试');
+  } else {
+    uploadedFileContent = generateFileContentPreview();
+    if (btn) { btn.disabled = false; btn.textContent = '上传成功，开始分析'; btn.style.opacity = ''; }
+    showToast(file.name + ' 上传成功 ✓');
   }
-  
-  showToast(file.name + ' 上传成功 ✓');
 }
 
 function simulateUpload() {
